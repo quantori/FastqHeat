@@ -1,0 +1,9 @@
+image: python:3.7.4
+pipelines:
+  default:
+    - step:
+        script:
+          #  - apt install python3-pip -qy
+          - pip3 install pytest
+          - pip3 install -r requirements.txt
+          - py.test -v tests/test_input.py 

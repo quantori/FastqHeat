@@ -1,0 +1,7 @@
+# Libs for fastqHeat
+beautifulsoup4
+requests
+Lxml
+
+# For testing setup py.test
+pytest
