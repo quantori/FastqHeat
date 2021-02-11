@@ -20,16 +20,14 @@ So this project is a tool for:
  - downloading only certain experiments or exclude from list any experiments;
  - checking results of downloading.
 
+## Installation.
+Read [DEVNOTES.md](https://github.com/quantori/FastqHeat/blob/master/DEVNOTES.md)
+
 ## How it works.
 The fastqHeat connect with NCBI database through API and has API key. It use NCBI services **esearch** and **efetch**.
 
-**Warning:** The tool fastq-dump (sra toolkit) must be preinstalled.  
-[Installation of sra toolkit](https://ncbi.github.io/sra-tools/install_config.html).  
-[Installation of sra toolkit from binaries](https://github.com/ncbi/sra-tools/wiki/HowTo:-Binary-Installation) - more useful (it's my opinion)  
+**Warning:** The tool fastq-dump (sra toolkit) must be preinstalled.   
 
-Also you need to add a path to the tools permanently(!).  
-On MacOS you need add the lines `/Users/username/path_to_the_sra/sratoolkit.(version)/bin` into the file `/etc/paths`.(And restart the terminal).
-To check adding type `which fastq-dump`. You must see the path to the sra tools.
 
 The tool fastq-dump as a parameter use a run identifier. A run id is within an experiment and has SRR prefix.  
 For this wrapper you need to put SRA Study identifier. It starts from SRP prefix.  
