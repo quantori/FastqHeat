@@ -17,5 +17,7 @@ To check adding type `which fastq-dump`. You must see the path to the sra tools.
 
 * Script is ready to be used
 
+`py.test -v tests/test_input.py`
+
 `python3 fastqheat.py -h`
 
