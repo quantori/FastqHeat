@@ -63,12 +63,4 @@ For this wrapper you need to put SRA Study identifier. It starts from SRP prefix
                         python3 fastqheat.py SRP163674 -P "SRR7969889,SRR7969890,SRR7969890"
     Ex 3: download only pointed items and show the details of the loading process.
                         python3 fastqheat.py SRP163674 -N "SRR7969891,SRR7969892" --show yes
-    
-     
-    
-### To do in the future  
-
-1. CI/CD
-3. To manage fastq-dump parameters 
-4. To add a possibility of downloading from [European Nucleotide Archive](https://www.ebi.ac.uk/ena/data/view/PRJEB21528)
   
