@@ -1,7 +1,7 @@
 import logging
 
 
-def remove_skipped_idx(total_list, skip_list=[]):
+def remove_skipped_idx(total_list, skip_list=None):
     """
     Remove idx of Runs which must be skipped
 
@@ -14,6 +14,8 @@ def remove_skipped_idx(total_list, skip_list=[]):
     -------
         list of str
     """
+    if skip_list is None:
+        skip_list = []
 
     if skip_list != []:
 
@@ -29,7 +31,7 @@ def remove_skipped_idx(total_list, skip_list=[]):
     return rest
 
 
-def get_only_idx(total_list, only_list=[]):
+def get_only_idx(total_list, only_list=None):
     """
     Return list of idx from total_idx AND only_idx
 
@@ -42,6 +44,8 @@ def get_only_idx(total_list, only_list=[]):
     -------
          list of str
     """
+    if only_list is None:
+        only_list = []
 
     if only_list != []:
 
