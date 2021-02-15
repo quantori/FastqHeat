@@ -1,11 +1,9 @@
 import logging
 from xml.etree import ElementTree
 import requests
-from requests.auth import HTTPBasicAuth
 
-API_KEY = '99278d0d79e3d3af54d845bed2c632573208'
+
 DB = 'sra'
-AUTH = HTTPBasicAuth('api_key', 'API_KEY')
 ESEARCH_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi'
 EFETCH_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
 
@@ -25,7 +23,6 @@ def get_retmax(term):
 
     response = requests.get(
         ESEARCH_URL,
-        auth=AUTH,
         params={
             'db': DB,
             'term': term
@@ -59,7 +56,6 @@ def get_id_list(term, retmax):
     """
     response = requests.get(
         ESEARCH_URL,
-        auth=AUTH,
         params={
             'db': DB,
             'term': term,
@@ -126,7 +122,6 @@ def get_run_uid_by_id(id, show=False):
     # Get the whole lxml tree with all info about study
     response = requests.get(
         EFETCH_URL,
-        auth=AUTH,
         params={
             'db': DB,
             'id': id
