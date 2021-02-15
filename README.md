@@ -3,6 +3,8 @@
 
 # FastqHeat
 
+Copyright © 2021 [Quantori](https://www.quantori.com/). Custom Software Solutions. All rights reserved.
+
 This program (wrapper) was created to help to download metagenomic data from SRA database.
 It uses the software **fastq-dump** converting data from **sra** format to **fastq** format. 
 
