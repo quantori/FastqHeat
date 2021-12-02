@@ -2,7 +2,6 @@ import logging
 from xml.etree import ElementTree
 import requests
 
-
 DB = 'sra'
 ESEARCH_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi'
 EFETCH_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
@@ -145,4 +144,3 @@ def get_run_uid_by_id(id, show=False):
     # If we are here it means something wrong with info about experiment
     logging.error('There is not RUN info by this UID')
     exit(0)
-

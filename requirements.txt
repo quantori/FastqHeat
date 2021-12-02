@@ -1,7 +1,7 @@
 # Libs for fastqHeat
-beautifulsoup4
-requests
-Lxml
+beautifulsoup4==4.10.0
+requests==2.26.0
+lxml==4.6.4
 
 # For testing setup py.test
-pytest
+pytest==6.2.5

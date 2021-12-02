@@ -2,7 +2,7 @@ import logging
 import argparse
 import os
 
-from download import download_run
+from download import download_run_ftp, download_run_fasterq_dump, download_run_aspc
 from manage_lists.filter_list import remove_skipped_idx, get_only_idx
 from study_info.check_result import check_loaded_run
 
@@ -11,7 +11,7 @@ from study_info.get_sra_study_info import get_retmax, get_id_list, get_run_uid_b
 
 def handle_run(accession,
                total_spots,
-               path):
+               path, method):
     """
     To download and check the quality of loading file
 
@@ -27,7 +27,12 @@ def handle_run(accession,
     """
 
     if accession in accession_list:
-        download_run(run=accession, out=out_dir)
+        if method == 'f':
+            download_run_ftp(run=accession, out=out_dir)
+        elif method == 'q':
+            download_run_fasterq_dump(run=accession, out=out_dir)
+        elif method == 'a':
+            download_run_aspc(run=accession, out=out_dir)
 
         if check_loaded_run(
                 run_accession=accession,
@@ -58,6 +63,8 @@ if __name__ == "__main__":
     optional arguments:
         -h, --help            show this help message and exit
         -L, --log             To point logging level (debug, info, warning, error. "info" by default)
+        -M, --method          Method of downloading fastq or fastq.gz file. There are 3 options for downloading data: FTP, Aspera and
+                              fasterq_dump. To use Aspera specify after -M command a, to use FTP specify f, and for fasterq_dump specify q.
         -N, --only            The only_list. The list of the certain items to download.
                               To write with '"," and without spaces.
         -P, --skip            The skip_list. The list of the items to do not download. To write with ',' and without spaces.
@@ -108,6 +115,12 @@ if __name__ == "__main__":
         default="."
     )
     parser.add_argument(
+        "-M", "--method",
+        help="Choose different type of methods that should be used for data retrieval: Aspera (a), FTP (f), fasterq_dump (q). By default it is fasterq_dump (q)",
+        action="store",
+        default='q'
+    )
+    parser.add_argument(
         "-P", "--skip",
         help="The skip_list. The list of the items to do not download. To write with ',' and without spaces. \
         Warning: Skip parameter has the biggest priority.\
@@ -121,8 +134,21 @@ if __name__ == "__main__":
         default="no"
     )
 
+    args = parser.parse_args()
+
+    # choose method type
+    if args.method:
+        method = args.method
+    else:
+        logging.error('Choose any method for data retrieval')
+        exit(0)
+
     try:
-        fd_version = os.popen("fastq-dump --version").read()
+        fd_version = ''
+        if method == 'q':
+            fd_version = os.popen("fasterq-dump --version").read()
+        elif method == 'a':
+            fd_version = os.popen("aspera --version").read()
     except IOError as e:
         logging.error(e)
         logging.error("SRA Toolkit not installed or not pointed in path")
@@ -130,8 +156,6 @@ if __name__ == "__main__":
     parser.add_argument('--version',
                         action='version',
                         version='%(prog)s 1.0 which use {} version'.format(fd_version))
-
-    args = parser.parse_args()
 
     if args.term:
         term = args.term
@@ -163,6 +187,7 @@ if __name__ == "__main__":
             show = False
     else:
         show = False
+
 
     out_dir = "."
     if args.out:
@@ -254,7 +279,8 @@ if __name__ == "__main__":
             success = handle_run(
                     accession=accession,
                     total_spots=total_spots,
-                    path=out_dir
+                    path=out_dir,
+                    method=method
             )
 
             if success:
@@ -266,7 +292,8 @@ if __name__ == "__main__":
                     handle_run(
                         accession=accession,
                         total_spots=total_spots,
-                        path=out_dir
+                        path=out_dir,
+                        method=method
                     )
                 else:
                     pass
