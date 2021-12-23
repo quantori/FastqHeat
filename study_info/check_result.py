@@ -1,46 +1,29 @@
 import logging
 import os
-import glob
+import hashlib
 
 
 def get_info_about_all_loaded_lines(run_accession, path="."):
     """
     Count lines in real loaded file(s) and return it
-
     run_accession: str
             Run's name (accession) like SRR...
     path: str
             path to the directory
-
     Returns
     -------
-
     """
-    all_lines = 0
-    cnt_entries = 0
-    m = [name for name in glob.glob(f'{path}/{run_accession}*.fastq.gz')]
 
-    if len(m) == 0:
-        filename = "{}*.fastq".format(run_accession)
-        filename = os.path.join(path, filename)
-        wc = "wc -l {}".format(filename)
-        entries = os.popen(wc).read()
-        entries = entries.strip('\'').split('\n')[:-1]
-        # get cnt entries
-        cnt_entries = len(entries)
-        # get last entry and its value
-        all_lines = entries[cnt_entries - 1].strip().split(' ')[0]
-    else:
-        filename = "{}*.fastq.gz".format(run_accession)
-        filename = os.path.join(path, filename)
-        wc = 'zcat {} | wc -l'.format(filename)
-        entries = os.popen(wc).read()
-        # get last entry and its value
-        all_lines = int(entries)
-        # get cnt entries
-        wc1 = 'ls {} | wc -l'.format(filename)
-        entries1 = os.popen(wc1).read()
-        cnt_entries = int(entries1)
+    filename = "{}*.fastq".format(run_accession)
+    filename = os.path.join(path, filename)
+
+    wc = "wc -l {}".format(filename)
+    entries = os.popen(wc).read()
+
+    entries = entries.strip('\'').split('\n')[:-1]
+
+    # get cnt entries
+    cnt_entries = len(entries)
 
     rate = None
     if cnt_entries == 0:
@@ -54,6 +37,8 @@ def get_info_about_all_loaded_lines(run_accession, path="."):
         #  537692 SRR7969892_1.fastq\n  537692 SRR7969892_2.fastq\n  1075384 total
         rate = 2
 
+    # get last entry and its value
+    all_lines = entries[cnt_entries - 1].strip().split(' ')[0]
     logging.debug('All lines in all files of this run: {}'.format(all_lines))
 
     return rate, int(all_lines)
@@ -121,3 +106,14 @@ def check_loaded_run(run_accession, path=".", needed_lines_cnt=1):
             needed_lines_cnt
         ))
         return False
+
+
+def md5_checksum(file, out, md5):
+    md5_hash = hashlib.md5()
+    try:
+        with open(f"{out}/{file}", "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                md5_hash.update(byte_block)
+            return md5_hash.hexdigest() == md5
+    except FileNotFoundError:
+        logging.warning(f'{out/file} does not exist')
