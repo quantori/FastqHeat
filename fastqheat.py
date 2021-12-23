@@ -1,17 +1,14 @@
 import logging
 import argparse
 import os
+import requests
 
 from download import download_run_ftp, download_run_fasterq_dump, download_run_aspc
-from manage_lists.filter_list import remove_skipped_idx, get_only_idx
-from study_info.check_result import check_loaded_run
 
-from study_info.get_sra_study_info import get_retmax, get_id_list, get_run_uid_by_id
+from study_info.get_sra_study_info import get_webenv_and_query_key_with_skipped_list, get_webenv_and_query_key_with_total_list, get_run_uid_with_no_exception, get_run_uid_with_skipped_list, get_run_uid_with_total_list, get_run_uid_with_only_list
 
 
-def handle_run(accession,
-               total_spots,
-               path, method):
+def handle_run(accession, method, total_spots):
     """
     To download and check the quality of loading file
 
@@ -25,27 +22,42 @@ def handle_run(accession,
     -------
 
     """
-
     if accession in accession_list:
         if method == 'f':
-            download_run_ftp(run=accession, out=out_dir)
+            if(download_run_ftp(run=accession, out=out_dir)):
+                logging.info('A try was finished.')
+                logging.info("Run {} was correctly downloaded".format(
+                    accession))
+                return True
+            else:
+                logging.warning("Run {} was loaded incorrectly!".format(
+                    accession))
+                return False
         elif method == 'q':
-            download_run_fasterq_dump(run=accession, out=out_dir)
+            # download_run_fasterq_dump(run=accession, out=out_dir)
+            # return True
+            if(download_run_fasterq_dump(run=accession, out=out_dir, total_spots=float(total_spots))):
+                logging.info('A try was finished.')
+                logging.info("Run {} was correctly downloaded".format(
+                    accession))
+                return True
+            else:
+                logging.warning("Run {} was loaded incorrectly!".format(
+                    accession))
+                return False
         elif method == 'a':
-            download_run_aspc(run=accession, out=out_dir)
-
-        if check_loaded_run(
-                run_accession=accession,
-                path=path,
-                needed_lines_cnt=total_spots
-        ):
-            logging.info("Run {} was correctly downloaded".format(accession))
-            return True
-        else:
-            logging.warning("Run {} was loaded incorrectly!".format(accession))
-            return False
+            if(download_run_aspc(run=accession, out=out_dir)):
+                logging.info('A try was finished.')
+                logging.info("Run {} was correctly downloaded".format(
+                    accession))
+                return True
+            else:
+                logging.warning("Run {} was loaded incorrectly!".format(
+                    accession))
+                return False
     else:
-        logging.debug("Accession {} not in the accession_list".format(accession))
+        logging.debug("Accession {} not in the accession_list".format(
+            accession))
         return True
 
 
@@ -155,7 +167,8 @@ if __name__ == "__main__":
         exit(0)
     parser.add_argument('--version',
                         action='version',
-                        version='%(prog)s 1.0 which use {} version'.format(fd_version))
+                        version='%(prog)s 1.0 which use {} version'.format(
+                            fd_version))
 
     if args.term:
         term = args.term
@@ -188,7 +201,6 @@ if __name__ == "__main__":
     else:
         show = False
 
-
     out_dir = "."
     if args.out:
         if os.path.isdir(args.out):
@@ -215,74 +227,55 @@ if __name__ == "__main__":
             format='[level=%(levelname)s]: %(message)s'
         )
 
-        # Get count of runs in experiment
-        cnt = get_retmax(term=term)
-
-        # Get the list of all identifiers of all runs of SRA study
-        idx = get_id_list(
-            term=term,
-            retmax=cnt
-        )
-
-        # The dictionary where stored pair accession_name:total_spot.
-        # Where accession name is a name of the run and looking like SRR...
-        # and total spots is the count of lines in the file.
-        # Accession name will be a key, total spots will be a value
-        runs = {}
-
-        # The list of names of runs which will be loaded
+        # Get webenv and query_key from eSearch results to use for eFetch
+        # Use this functions only when show tree is true and there is
+        # skipped list or total list provided from single SRP
+        # The list of names of runs will be different depending on whether
+        # or not user wants to see lxml tree and whether or not
+        # all runs should be dowloaded from SRP or only specific list
+        # should be downloaded or specific list should be skipped
         accession_list = []
-
-        # Get run parameters:
-        # - dict of Run's name (accessions)
-        # - cnt of lines in an each accession
-        for i, identifier in enumerate(idx):
-
-            # get all Run's attributes
-            run = get_run_uid_by_id(
-                id=identifier,
-                show=show
-            )
-            # Take the RUN name looking like SRR... - run accession
-            accession = run['accession']
-
-            try:
-                # take and convert the count of lines in the run file
-                total_spots = int(run['total_spots'])
-                # ... and put pair {run_name:cnt of lines} into the dictionary
-                runs[accession] = total_spots
-
-                # add this accession into the FULL list of names
-                accession_list.append(accession)
-            except TypeError:
-                logging.error('Incorrect attribute name in Run description (lxml response)')
-                exit(0)
-
-            # TODO use for tests only
-            # if i == 12:
-            #     break
-
-        # Remove runs from the "skip list"
-        accession_list = remove_skipped_idx(
-            total_list=accession_list,
-            skip_list=skip_list
-        )
-
-        # Get idx from the "only list"
-        accession_list = get_only_idx(
-            total_list=accession_list,
-            only_list=only_list
-        )
+        total_spots = []
+        if show:
+            if only_list == [] and skip_list == []:
+                webenv, query_key = get_webenv_and_query_key_with_total_list(
+                    term=term)
+                accession_list, total_spots = get_run_uid_with_no_exception(
+                    webenv, query_key
+                )
+            elif skip_list != []:
+                webenv, query_key = get_webenv_and_query_key_with_skipped_list(
+                    term=term, skip_list=skip_list
+                )
+                accession_list, total_spots = get_run_uid_with_no_exception(
+                    webenv=webenv, query_key=query_key
+                )
+            elif only_list != []:
+                accession_list, total_spots = get_run_uid_with_only_list(
+                                                only_list)
+        else:
+            if only_list == [] and skip_list == []:
+                accession_list, total_spots = get_run_uid_with_total_list(term)
+            elif skip_list != []:
+                accession_list, total_spots = get_run_uid_with_skipped_list(
+                                                term, skip_list)
+            elif only_list != []:
+                if method == 'q':
+                    accession_list = only_list
+                    for i in only_list:
+                        url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={i}&result=read_run&fields=run_accession,read_count&format=json'
+                        response = requests.get(url)
+                        total_spots.append(response.json()[0]['read_count'])
+                else:
+                    accession_list = only_list
 
         # download every Run
-        for accession, total_spots in runs.items():
+        for i in range(0, len(accession_list)):
             success = handle_run(
-                    accession=accession,
-                    total_spots=total_spots,
-                    path=out_dir,
-                    method=method
+                    accession=accession_list[i],
+                    method=method,
+                    total_spots=total_spots[i]
             )
-
             if success:
                 pass
             else:
@@ -290,14 +283,13 @@ if __name__ == "__main__":
                 answer = input()
                 if answer == "y":
                     handle_run(
-                        accession=accession,
-                        total_spots=total_spots,
-                        path=out_dir,
-                        method=method
+                        accession=accession_list[i],
+                        method=method,
+                        total_spots=total_spots[i]
                     )
                 else:
                     pass
-        print("All runs was loaded.")
+        print("All runs were loaded.")
     except ValueError as e:
         logging.error(e)
         print("Unexpected exit")
