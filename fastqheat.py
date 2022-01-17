@@ -1,11 +1,13 @@
 import logging
 import argparse
 import os
+import urllib3
+import ssl
 import requests
 
 from download import download_run_ftp, download_run_fasterq_dump, download_run_aspc
 
-from study_info.get_sra_study_info import get_webenv_and_query_key_with_skipped_list, get_webenv_and_query_key_with_total_list, get_run_uid_with_no_exception, get_run_uid_with_skipped_list, get_run_uid_with_total_list, get_run_uid_with_only_list
+from study_info.get_sra_study_info import get_webenv_and_query_key_with_skipped_list, get_webenv_and_query_key_with_total_list, get_run_uid_with_no_exception, get_run_uid_with_skipped_list, get_run_uid_with_total_list, get_run_uid_with_only_list, get_metadata, download_metadata
 
 
 def handle_run(accession, method, total_spots=1):
@@ -145,6 +147,30 @@ if __name__ == "__main__":
         action="store"
     )
     parser.add_argument(
+        "-E", "--explore",
+        help="Choose between 2 options:download runs or download metadata. Argument should be followed with \
+        i for Metadata and r for Runs.\
+        By default it will always be set to r to retrieve runs.",
+        action="store",
+        default="r"
+    )
+    parser.add_argument(
+        "-F", "--format",
+        help="Choose which format to use to download metadata:CSV, JSON on YAML. \
+        c for CSV, j for JSON and y for YAML.\
+        By default it will always be set to j.",
+        action="store",
+        default="j"
+    )
+    parser.add_argument(
+        "-V", "--value",
+        help="Choose column selection from ENA. To write with ',' and without spaces. \
+        By default it will always be set to this list:\
+        study_accession,sample_accession,experiment_accession,read_count,base_count.",
+        action="store",
+        default="study_accession,sample_accession,experiment_accession,read_count,base_count"
+    )
+    parser.add_argument(
         "-S", "--show",
         help="To show lxml file in a terminal with all Run data (yes/no).",
         action="store",
@@ -160,20 +186,47 @@ if __name__ == "__main__":
         logging.error('Choose any method for data retrieval')
         exit(0)
 
+    # choose what to download metadata or runs
+    if args.explore:
+        op = args.explore
+    else:
+        logging.error('Choose option for data retrieval')
+        exit(0)
+
+    # choose file format of downloaded metadata
+    if op == "i":
+        if args.format:
+            ff = args.format
+        else:
+            logging.error('Choose option for metadata format')
+            exit(0)
+
+    # choose values for parameters for metadata
+    if op == "i":
+        if args.value:
+            value = args.value
+        else:
+            logging.error('Choose correct values for metadata')
+            exit(0)
+
     try:
-        fd_version = ''
         if method == 'q':
             fd_version = os.popen("fasterq-dump --version").read()
+            tool = "fasterq+dump"
         elif method == 'a':
             fd_version = os.popen("aspera --version").read()
+            tool = "Aspera CLI"
+        else:
+            fd_version = ''
+            tool = ''
     except IOError as e:
         logging.error(e)
-        logging.error("SRA Toolkit not installed or not pointed in path")
+        logging.error("SRA Toolkit/Aspera CLI not installed or not pointed in path")
         exit(0)
     parser.add_argument('--version',
                         action='version',
-                        version='%(prog)s 1.0 which use {} version'.format(
-                            fd_version))
+                        version=f'{tool} which use {fd_version} version'
+                        )
 
     # args for skipping Runs
     if args.skip:
@@ -284,41 +337,62 @@ if __name__ == "__main__":
                             total_spots.append(response.json()[0]['read_count'])
                     else:
                         accession_list = only_list
-
-            # download every Run
-            for i in range(0, len(accession_list)):
-                try:
-                    success = handle_run(
-                            accession=accession_list[i],
-                            method=method,
-                            total_spots=total_spots[i]
-                    )
-                except IndexError as e:
-                    success = handle_run(
-                            accession=accession_list[i],
-                            method=method
-                    )
-                if success:
-                    pass
-                else:
-                    logging.warning("Do you want to reload it one more time? (y/n)")
-                    answer = input()
-                    if answer == "y":
-                        try:
-                            handle_run(
-                                    accession=accession_list[i],
-                                    method=method,
-                                    total_spots=total_spots[i]
-                            )
-                        except IndexError as e:
-                            handle_run(
-                                    accession=accession_list[i],
-                                    method=method
-                            )
+            if op == "r":
+                # This branch downloads only study runs
+                # Download every Run
+                for i in range(0, len(accession_list)):
+                    if method == "q":
+                        success = handle_run(
+                                accession=accession_list[i],
+                                method=method,
+                                total_spots=total_spots[i]
+                        )
                     else:
+                        success = handle_run(
+                                accession=accession_list[i],
+                                method=method
+                        )
+                    if success:
                         pass
-            print("All runs were loaded.")
+                    else:
+                        logging.warning("Do you want to reload it one more time? (y/n)")
+                        answer = input()
+                        if answer == "y":
+                            if method == "q":
+                                handle_run(
+                                        accession=accession_list[i],
+                                        method=method,
+                                        total_spots=total_spots[i]
+                                )
+                            else:
+                                handle_run(
+                                        accession=accession_list[i],
+                                        method=method
+                                )
+                        else:
+                            pass
+                logging.info("All runs were loaded.")
+            else:
+                # This branch downloads metadata
+                logging.info('Start getting metadata from ENA')
+                if show:
+                    metadata = []
+                    for accession in accession_list:
+                        metadata.extend(get_metadata(term=accession,
+                                                     value=value))
+                else:
+                    if only_list == [] and skip_list == []:
+                        metadata = get_metadata(term=term, value=value)
+                    else:
+                        metadata = []
+                        for accession in accession_list:
+                            metadata.extend(get_metadata(term=accession,
+                                                         value=value))
+                logging.info('Start download metadata retrieved from ENA')
+                download_metadata(metadata, ff, term, out_dir)
+                logging.info("Metadata has been loaded.")
         else:
+            # This branch downloads data using .txt file with multiple study accession
             accession_list = []
             total_spots = []
             for term in terms:
@@ -331,40 +405,61 @@ if __name__ == "__main__":
                         )
                 else:
                     accession_list, total_spots = get_run_uid_with_total_list(term, method)
-                # download every Run
+                # download every Run / metadata
+                metadata = []
                 for i in range(0, len(accession_list)):
-                    try:
-                        success = handle_run(
-                                accession=accession_list[i],
-                                method=method,
-                                total_spots=total_spots[i]
-                        )
-                    except IndexError as e:
-                        success = handle_run(
-                                accession=accession_list[i],
-                                method=method
-                        )
-                    if success:
-                        pass
-                    else:
-                        logging.warning("Do you want to reload it one more time? (y/n)")
-                        answer = input()
-                        if answer == "y":
-                            try:
-                                handle_run(
-                                        accession=accession_list[i],
-                                        method=method,
-                                        total_spots=total_spots[i]
-                                )
-                            except IndexError as e:
-                                handle_run(
-                                        accession=accession_list[i],
-                                        method=method
-                                )
+                    if op == "r":
+                        # This branch downloads study runs
+                        if method == "q":
+                            success = handle_run(
+                                    accession=accession_list[i],
+                                    method=method,
+                                    total_spots=total_spots[i]
+                            )
                         else:
+                            success = handle_run(
+                                    accession=accession_list[i],
+                                    method=method
+                            )
+                        if success:
                             pass
-                print(f"All runs were loaded from {term}.")
+                        else:
+                            logging.warning("Do you want to reload it one more time? (y/n)")
+                            answer = input()
+                            if answer == "y":
+                                if method == "q":
+                                    handle_run(
+                                            accession=accession_list[i],
+                                            method=method,
+                                            total_spots=total_spots[i]
+                                    )
+                                else:
+                                    handle_run(
+                                            accession=accession_list[i],
+                                            method=method
+                                    )
+                            else:
+                                pass
+                        logging.info(f"All runs were loaded from {term}.")
+                    else:
+                        # This branch retrieves metadata
+                        metadata.extend(get_metadata(term=accession_list[i],
+                                                     value=value))
+                else:
+                    if op == "i":
+                        download_metadata(metadata, ff, term, out_dir)
+                        logging.info("Metadata has been loaded.")
+                        metadata = []
     except ValueError as e:
         logging.error(e)
         print("Unexpected exit")
+        exit(0)
+    except (requests.exceptions.SSLError,
+            urllib3.exceptions.MaxRetryError,
+            ssl.SSLEOFError) as e:
+        logging.error(e)
+        print("Too many requests were made. Exiting system.")
+        exit(0)
+    except KeyboardInterrupt:
+        print("Session was interrupted!")
         exit(0)

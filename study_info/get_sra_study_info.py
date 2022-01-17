@@ -1,6 +1,9 @@
 import logging
 from xml.etree import ElementTree
 import requests
+import pandas as pd
+import yaml
+import json
 
 DB = 'sra'
 ESEARCH_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi'
@@ -134,7 +137,7 @@ def get_run_uid_with_only_list(only_list):
             logging.debug(elem.attrib)
             SRRs.append(elem.attrib['accession'])
             total_spots.append(elem.attrib['total_spots'])
-
+    logging.info('List of runs with only: {}'.format(SRRs))
     return SRRs, total_spots
 
 
@@ -172,7 +175,7 @@ def get_run_uid_with_no_exception(webenv, query_key):
             logging.debug(elem.attrib)
             SRRs.append(elem.attrib['accession'])
             total_spots.append(elem.attrib['total_spots'])
-
+    logging.info('List of runs: {}'.format(SRRs))
     return SRRs, total_spots
 
 
@@ -206,6 +209,7 @@ def get_run_uid_with_total_list(term, method):
         response = requests.get(url)
         SRRs = [response.json()[i]['run_accession']
                 for i in range(0, len(response.json()))]
+    logging.info('List of total runs: {}'.format(SRRs))
     return SRRs, total_spots
 
 
@@ -248,6 +252,24 @@ def get_run_uid_with_skipped_list(term, skip_list, method):
 
     return SRRs, total_spots
 
-    # If we are here it means something wrong with info about experiment
-    # logging.error('There is not RUN info by this UID')
-    # exit(0)
+
+def get_metadata(term, value):
+    try:
+        url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields={value}&format=json'
+        response = requests.get(url)
+        return response.json()
+    except requests.exceptions.ConnectionError as e:
+        logging.error(e)
+        print("Incorrect parameter(s) was/were provided to tool. Try again with correct ones from ENA.")
+
+
+def download_metadata(data, ff, term, out):
+    if ff == "c":
+        df = pd.DataFrame(data)
+        df.to_csv(f"{out}/{term}_metadata.csv", index=False)
+    elif ff == "j":
+        with open(f"{out}/{term}_metadata.json", 'w') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+    elif ff == "y":
+        with open(f"{out}/{term}_metadata.yaml", 'w') as yml:
+            yaml.dump(data, yml, allow_unicode=True)
