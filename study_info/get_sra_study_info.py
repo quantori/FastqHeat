@@ -4,6 +4,7 @@ import requests
 import pandas as pd
 import yaml
 import json
+import os
 
 DB = 'sra'
 ESEARCH_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi'
@@ -27,7 +28,8 @@ def get_webenv_and_query_key_with_total_list(term):
         params={
             'db': DB,
             'term': term,
-            'usehistory': 'y'
+            'usehistory': 'y',
+            'api_key': os.environ.get('API_KEY'),
         }
     )
     logging.info(response)
@@ -62,7 +64,8 @@ def get_webenv_and_query_key_with_skipped_list(term, skip_list):
         params={
             'db': DB,
             'term': skip,
-            'usehistory': 'y'
+            'usehistory': 'y',
+            'api_key': os.environ.get('API_KEY'),
         }
     )
     logging.info(response)
@@ -126,7 +129,8 @@ def get_run_uid_with_only_list(only_list):
         EFETCH_URL,
         params={
             'db': DB,
-            'id': ','.join(only_list)
+            'id': ','.join(only_list),
+            'api_key': os.environ.get('API_KEY'),
         }
     )
     logging.debug(response.text)
@@ -164,7 +168,8 @@ def get_run_uid_with_no_exception(webenv, query_key):
         params={
             'db': DB,
             'Webenv': webenv,
-            'query_key': query_key
+            'query_key': query_key,
+            'api_key': os.environ.get('API_KEY'),
         }
     )
     logging.debug(response.text)
@@ -254,13 +259,9 @@ def get_run_uid_with_skipped_list(term, skip_list, method):
 
 
 def get_metadata(term, value):
-    try:
-        url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields={value}&format=json'
-        response = requests.get(url)
-        return response.json()
-    except requests.exceptions.ConnectionError as e:
-        logging.error(e)
-        print("Incorrect parameter(s) was/were provided to tool. Try again with correct ones from ENA.")
+    url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields={value}&format=json'
+    response = requests.get(url)
+    return response.json()
 
 
 def download_metadata(data, ff, term, out):
