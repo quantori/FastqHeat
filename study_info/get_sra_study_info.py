@@ -23,15 +23,25 @@ def get_webenv_and_query_key_with_total_list(term):
     -------
 
     """
-    response = requests.get(
-        ESEARCH_URL,
-        params={
-            'db': DB,
-            'term': term,
-            'usehistory': 'y',
-            'api_key': os.environ.get('API_KEY'),
-        }
-    )
+    if os.environ.get('API_KEY') is None:
+        response = requests.get(
+            ESEARCH_URL,
+            params={
+                'db': DB,
+                'term': term,
+                'usehistory': 'y',
+            }
+        )
+    else:
+        response = requests.get(
+            ESEARCH_URL,
+            params={
+                'db': DB,
+                'term': term,
+                'usehistory': 'y',
+                'api_key': os.environ.get('API_KEY'),
+            }
+        )
     logging.info(response)
     root = ElementTree.fromstring(response.text)
     query_key = root[3].text
@@ -59,15 +69,25 @@ def get_webenv_and_query_key_with_skipped_list(term, skip_list):
 
     """
     skip = term + '[All Fields] NOT ' + '[All Fields] NOT '.join(skip_list)
-    response = requests.get(
-        ESEARCH_URL,
-        params={
-            'db': DB,
-            'term': skip,
-            'usehistory': 'y',
-            'api_key': os.environ.get('API_KEY'),
-        }
-    )
+    if os.environ.get('API_KEY') is None:
+        response = requests.get(
+            ESEARCH_URL,
+            params={
+                'db': DB,
+                'term': skip,
+                'usehistory': 'y',
+            }
+        )
+    else:
+        response = requests.get(
+            ESEARCH_URL,
+            params={
+                'db': DB,
+                'term': skip,
+                'usehistory': 'y',
+                'api_key': os.environ.get('API_KEY'),
+            }
+        )
     logging.info(response)
     root = ElementTree.fromstring(response.text)
     query_key = root[3].text
@@ -125,14 +145,23 @@ def get_run_uid_with_only_list(only_list):
     # Limitation is 200 UIDs for eFetch id property
     SRRs = []
     total_spots = []
-    response = requests.get(
-        EFETCH_URL,
-        params={
-            'db': DB,
-            'id': ','.join(only_list),
-            'api_key': os.environ.get('API_KEY'),
-        }
-    )
+    if os.environ.get('API_KEY') is None:
+        response = requests.get(
+            EFETCH_URL,
+            params={
+                'db': DB,
+                'id': ','.join(only_list),
+            }
+        )
+    else:
+        response = requests.get(
+            EFETCH_URL,
+            params={
+                'db': DB,
+                'id': ','.join(only_list),
+                'api_key': os.environ.get('API_KEY'),
+            }
+        )
     logging.debug(response.text)
     show_tree(response)
     root = ElementTree.fromstring(response.text)
@@ -163,15 +192,25 @@ def get_run_uid_with_no_exception(webenv, query_key):
     # Limitation is 200 UIDs for eFetch id property
     SRRs = []
     total_spots = []
-    response = requests.get(
-        EFETCH_URL,
-        params={
-            'db': DB,
-            'Webenv': webenv,
-            'query_key': query_key,
-            'api_key': os.environ.get('API_KEY'),
-        }
-    )
+    if os.environ.get('API_KEY') is None:
+        response = requests.get(
+            EFETCH_URL,
+            params={
+                'db': DB,
+                'Webenv': webenv,
+                'query_key': query_key,
+            }
+        )
+    else:
+        response = requests.get(
+            EFETCH_URL,
+            params={
+                'db': DB,
+                'Webenv': webenv,
+                'query_key': query_key,
+                'api_key': os.environ.get('API_KEY'),
+            }
+        )
     logging.debug(response.text)
     show_tree(response)
     root = ElementTree.fromstring(response.text)
