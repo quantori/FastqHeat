@@ -1,19 +1,17 @@
 import logging
 import os
+import hashlib
 
 
 def get_info_about_all_loaded_lines(run_accession, path="."):
     """
     Count lines in real loaded file(s) and return it
-
     run_accession: str
             Run's name (accession) like SRR...
     path: str
             path to the directory
-
     Returns
     -------
-
     """
 
     filename = "{}*.fastq".format(run_accession)
@@ -110,3 +108,12 @@ def check_loaded_run(run_accession, path=".", needed_lines_cnt=1):
         return False
 
 
+def md5_checksum(file, out, md5):
+    md5_hash = hashlib.md5()
+    try:
+        with open(f"{out}/{file}", "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                md5_hash.update(byte_block)
+            return md5_hash.hexdigest() == md5
+    except FileNotFoundError:
+        logging.warning(f'{out/file} does not exist')
