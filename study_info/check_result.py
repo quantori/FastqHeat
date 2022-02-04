@@ -1,6 +1,6 @@
+import hashlib
 import logging
 import os
-import hashlib
 
 
 def get_info_about_all_loaded_lines(run_accession, path="."):
