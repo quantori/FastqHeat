@@ -1,10 +1,13 @@
-import logging
-from xml.etree import ElementTree
-import requests
-import pandas as pd
-import yaml
+import asyncio
 import json
+import logging
 import os
+from xml.etree import ElementTree
+
+import aiohttp
+import pandas as pd
+import requests
+import yaml
 
 DB = 'sra'
 ESEARCH_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi'
@@ -127,6 +130,33 @@ def show_tree(tree):
         logging.error("Cannot parse lxml tree from sra db")
 
 
+async def get_total_spot(session, accession):
+    url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={accession}&result=read_run&fields=run_accession,read_count&format=json'
+
+    async with session.get(url) as response:
+        result_data = await response.json()
+        result = result_data[0]['read_count']
+        return int(result)
+
+
+def get_total_spots_with_only_list(only_list):
+    async def main():
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            for accession in only_list:
+                task = asyncio.ensure_future(get_total_spot(
+                                            session,
+                                            accession)
+                                            )
+                tasks.append(task)
+
+            total_spots = await asyncio.gather(*tasks)
+        return total_spots
+
+    x = asyncio.run(main())
+    return x
+
+
 def get_run_uid_with_only_list(only_list):
     """
     Get the Run UID by its Id
@@ -141,8 +171,6 @@ def get_run_uid_with_only_list(only_list):
         str
     """
 
-    # Get the lxml tree when show is yes
-    # Limitation is 200 UIDs for eFetch id property
     SRRs = []
     total_spots = []
     if os.environ.get('API_KEY') is None:
@@ -188,8 +216,6 @@ def get_run_uid_with_no_exception(webenv, query_key):
         str
     """
 
-    # Get the lxml tree when show is yes
-    # Limitation is 200 UIDs for eFetch id property
     SRRs = []
     total_spots = []
     if os.environ.get('API_KEY') is None:
@@ -297,10 +323,27 @@ def get_run_uid_with_skipped_list(term, skip_list, method):
     return SRRs, total_spots
 
 
-def get_metadata(term, value):
-    url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields={value}&format=json'
-    response = requests.get(url)
-    return response.json()
+async def get_accession_metadata(session, accession, value):
+    url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={accession}&result=read_run&fields={value}&format=json'
+
+    async with session.get(url) as response:
+        result_data = await response.json()
+        result_data, = result_data
+        return result_data
+
+
+def get_full_metadata(accession_list, value):
+    async def main():
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            for accession in accession_list:
+                task = asyncio.ensure_future(get_accession_metadata(session, accession, value))
+                tasks.append(task)
+
+            metadata = await asyncio.gather(*tasks)
+            return metadata
+    x = asyncio.run(main())
+    return x
 
 
 def download_metadata(data, ff, term, out):

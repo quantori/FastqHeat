@@ -1,13 +1,19 @@
-import logging
 import argparse
+import logging
 import os
-import urllib3
 import ssl
+
 import requests
+import urllib3
 
-from download import download_run_ftp, download_run_fasterq_dump, download_run_aspc
-
-from study_info.get_sra_study_info import get_webenv_and_query_key_with_skipped_list, get_webenv_and_query_key_with_total_list, get_run_uid_with_no_exception, get_run_uid_with_skipped_list, get_run_uid_with_total_list, get_run_uid_with_only_list, get_metadata, download_metadata
+from download import (download_run_aspc, download_run_fasterq_dump,
+                      download_run_ftp)
+from study_info.get_sra_study_info import (
+    download_metadata, get_full_metadata, get_run_uid_with_no_exception,
+    get_run_uid_with_only_list, get_run_uid_with_skipped_list,
+    get_run_uid_with_total_list, get_total_spots_with_only_list,
+    get_webenv_and_query_key_with_skipped_list,
+    get_webenv_and_query_key_with_total_list)
 
 
 def handle_run(accession, method, total_spots=1):
@@ -38,8 +44,6 @@ def handle_run(accession, method, total_spots=1):
                         accession))
                     return False
             elif method == 'q':
-                # download_run_fasterq_dump(run=accession, out=out_dir)
-                # return True
                 if(download_run_fasterq_dump(term=term, terms=terms,
                                              run=accession, out=out_dir,
                                              total_spots=float(total_spots))):
@@ -331,10 +335,7 @@ if __name__ == "__main__":
                 elif only_list != []:
                     if method == 'q':
                         accession_list = only_list
-                        for i in only_list:
-                            url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={i}&result=read_run&fields=run_accession,read_count&format=json'
-                            response = requests.get(url)
-                            total_spots.append(response.json()[0]['read_count'])
+                        total_spots = get_total_spots_with_only_list(only_list)
                     else:
                         accession_list = only_list
             if op == "r":
@@ -375,19 +376,7 @@ if __name__ == "__main__":
             else:
                 # This branch downloads metadata
                 logging.info('Start getting metadata from ENA')
-                if show:
-                    metadata = []
-                    for accession in accession_list:
-                        metadata.extend(get_metadata(term=accession,
-                                                     value=value))
-                else:
-                    if only_list == [] and skip_list == []:
-                        metadata = get_metadata(term=term, value=value)
-                    else:
-                        metadata = []
-                        for accession in accession_list:
-                            metadata.extend(get_metadata(term=accession,
-                                                         value=value))
+                metadata = get_full_metadata(accession_list, value)
                 logging.info('Start download metadata retrieved from ENA')
                 download_metadata(metadata, ff, term, out_dir)
                 logging.info("Metadata has been loaded.")
@@ -406,10 +395,15 @@ if __name__ == "__main__":
                 else:
                     accession_list, total_spots = get_run_uid_with_total_list(term, method)
                 # download every Run / metadata
-                metadata = []
-                for i in range(0, len(accession_list)):
-                    if op == "r":
-                        # This branch downloads study runs
+                if op == "i":
+                    # This branch downloads metadata
+                    logging.info('Start getting metadata from ENA')
+                    metadata = get_full_metadata(accession_list, value)
+                    download_metadata(metadata, ff, term, out_dir)
+                    logging.info("Metadata has been loaded.")
+                elif op == "r":
+                    # This branch downloads study runs
+                    for i in range(0, len(accession_list)):
                         if method == "q":
                             success = handle_run(
                                     accession=accession_list[i],
@@ -441,15 +435,6 @@ if __name__ == "__main__":
                             else:
                                 pass
                         logging.info(f"All runs were loaded from {term}.")
-                    else:
-                        # This branch retrieves metadata
-                        metadata.extend(get_metadata(term=accession_list[i],
-                                                     value=value))
-                else:
-                    if op == "i":
-                        download_metadata(metadata, ff, term, out_dir)
-                        logging.info("Metadata has been loaded.")
-                        metadata = []
     except ValueError as e:
         logging.error(e)
         print("Unexpected exit")
@@ -459,6 +444,10 @@ if __name__ == "__main__":
             ssl.SSLEOFError) as e:
         logging.error(e)
         print("Too many requests were made. Exiting system.")
+        exit(0)
+    except requests.exceptions.ConnectionError as e:
+        logging.error(e)
+        print("Incorrect parameter(s) was/were provided to tool. Try again with correct ones from ENA.")
         exit(0)
     except KeyboardInterrupt:
         print("Session was interrupted!")
