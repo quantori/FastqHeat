@@ -16,7 +16,10 @@ EFETCH_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
 
 def get_webenv_and_query_key_with_total_list(term):
     """
-    Get the list of run identifiers in this SRA study.
+    Get Webenv and query key from Esearch to communicate results to Efetch
+    about the full list of Run Accessions from the given
+    Study/Sample/Experiment/Submission Accession
+
     Parameters
     ----------
     term: str
@@ -24,7 +27,8 @@ def get_webenv_and_query_key_with_total_list(term):
 
     Returns
     -------
-
+    tuple
+        a tuple of Webenv and query_key about the full list of Run Accessions
     """
     if os.environ.get('API_KEY') is None:
         response = requests.get(
@@ -61,15 +65,21 @@ def get_webenv_and_query_key_with_total_list(term):
 
 def get_webenv_and_query_key_with_skipped_list(term, skip_list):
     """
-    Get the list of run identifiers in this SRA study.
+    Get Webenv and query key from Esearch to communicate results to Efetch
+    about the list of Run Accessions without skipped list from the given 
+    Study/Sample/Experiment/Submission Accession
+
     Parameters
     ----------
     term: str
             a string like "SRP...."
+    skip_list: list
+            a list of Run Accessions that should be skipped from the full list
 
     Returns
     -------
-
+    tuple
+        a tuple of Webenv and query_key about the Run Accessions
     """
     skip = term + '[All Fields] NOT ' + '[All Fields] NOT '.join(skip_list)
     if os.environ.get('API_KEY') is None:
@@ -159,18 +169,23 @@ def get_total_spots_with_only_list(only_list):
 
 def get_run_uid_with_only_list(only_list):
     """
-    Get the Run UID by its Id
+    Get the Run UID by specifying Run Accessions from the only list
+    that user provided
+    This will be used only when user desires to view lxml
+    file with all Run data
+
     Parameters
     ----------
-    id: object
-        Run identifier
-    show: bool
-        show or hide lxml tree of response
+    only_list: list
+            a list of specific Run Accessions
+
     Returns
     -------
-        str
+        tuple
+            a tuple of list of Run Accessions and list of total
+            spots of each Run Accession
     """
-
+    # Limitation is 200 UIDs
     SRRs = []
     total_spots = []
     if os.environ.get('API_KEY') is None:
@@ -197,23 +212,28 @@ def get_run_uid_with_only_list(only_list):
         if elem.tag == 'RUN':
             logging.debug(elem.attrib)
             SRRs.append(elem.attrib['accession'])
-            total_spots.append(elem.attrib['total_spots'])
+            total_spots.append(int(elem.attrib['total_spots']))
     logging.info('List of runs with only: {}'.format(SRRs))
     return SRRs, total_spots
 
 
 def get_run_uid_with_no_exception(webenv, query_key):
     """
-    Get the Run UID by its Id
+    Get the Run UID by using Webenv and query key retrieved from
+    Esearch results
+
     Parameters
     ----------
-    id: object
-        Run identifier
-    show: bool
-        show or hide lxml tree of response
+    webenv: str
+        Web environment string returned from a previous ESearch
+    query_key: str
+        String query key returned by a previous ESearch
+
     Returns
     -------
-        str
+        tuple
+            a tuple of list of Run Accessions and list of total
+            spots of each Run Accession
     """
 
     SRRs = []
@@ -244,28 +264,31 @@ def get_run_uid_with_no_exception(webenv, query_key):
         if elem.tag == 'RUN':
             logging.debug(elem.attrib)
             SRRs.append(elem.attrib['accession'])
-            total_spots.append(elem.attrib['total_spots'])
+            total_spots.append(int(elem.attrib['total_spots']))
     logging.info('List of runs: {}'.format(SRRs))
     return SRRs, total_spots
 
 
 def get_run_uid_with_total_list(term, method):
     """
-    Get the Run UID by its Id
+    Get the Run UIDs using Study/Sample/Experiment/Submission Accession, which
+    will be used to retrieve ENA File report with all Run Accessions and total
+    spots
+
     Parameters
     ----------
-    id: object
-        Run identifier
-    show: bool
-        show or hide lxml tree of response
+    term: str
+            a string like "SRP...."
+    method: str
+            a string about which method is used for data retrieval
+
     Returns
     -------
-        str
+        tuple
+            a tuple of list of Run Accessions and list of total
+            spots of each Run Accession
     """
 
-    # Get the lxml tree when show is yes
-    # Limitation is 200 UIDs for eFetch id property
-    # Retrieve data using ENA
     SRRs = []
     total_spots = []
     if method == 'q':
@@ -273,7 +296,7 @@ def get_run_uid_with_total_list(term, method):
         response = requests.get(url)
         for i in range(0, len(response.json())):
             SRRs.append(response.json()[i]['run_accession'])
-            total_spots.append(response.json()[i]['read_count'])
+            total_spots.append(int(response.json()[i]['read_count']))
     else:
         url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields=run_accession&format=json'
         response = requests.get(url)
@@ -285,20 +308,26 @@ def get_run_uid_with_total_list(term, method):
 
 def get_run_uid_with_skipped_list(term, skip_list, method):
     """
-    Get the Run UID by its Id
+    Get the Run UIDs using Study/Sample/Experiment/Submission Accession, which
+    will be used to retrieve ENA File report with all Run Accessions and total
+    spots except those Run Accessions specified in skipped list by user
+
     Parameters
     ----------
-    id: object
-        Run identifier
-    show: bool
-        show or hide lxml tree of response
+    term: str
+            a string like "SRP...."
+    skip_list: list
+            a list of Run Accessions that should be skipped
+    method: str
+            a string about which method is used for data retrieval
+
     Returns
     -------
-        str
+        tuple
+            a tuple of list of Run Accessions and list of total
+            spots of each Run Accession
     """
 
-    # Get the lxml tree when show is yes
-    # Limitation is 200 UIDs for eFetch id property
     SRRs = []
     total_spots = []
     if method == 'q':
@@ -337,7 +366,10 @@ def get_full_metadata(accession_list, value):
         async with aiohttp.ClientSession() as session:
             tasks = []
             for accession in accession_list:
-                task = asyncio.ensure_future(get_accession_metadata(session, accession, value))
+                task = asyncio.ensure_future(get_accession_metadata(
+                                                                    session,
+                                                                    accession,
+                                                                    value))
                 tasks.append(task)
 
             metadata = await asyncio.gather(*tasks)
@@ -347,6 +379,25 @@ def get_full_metadata(accession_list, value):
 
 
 def download_metadata(data, ff, term, out):
+    """
+    Download metadata retrieved from ENA File report as a file of
+    3 possible file formats: CSV, JSON, YAML
+
+    Parameters
+    ----------
+    data: list
+            a list of reports returned in JSON format
+    ff: str
+            a string of file format
+    term: str
+            a string like "SRP...."
+    out: str
+            path to the directory
+
+    Returns
+    -------
+    """
+
     if ff == "c":
         df = pd.DataFrame(data)
         df.to_csv(f"{out}/{term}_metadata.csv", index=False)

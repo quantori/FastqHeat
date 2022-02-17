@@ -6,10 +6,14 @@ import os
 def get_info_about_all_loaded_lines(run_accession, path="."):
     """
     Count lines in real loaded file(s) and return it
+
+    Parameters
+    ----------
     run_accession: str
             Run's name (accession) like SRR...
     path: str
             path to the directory
+
     Returns
     -------
     """
@@ -109,6 +113,25 @@ def check_loaded_run(run_accession, path=".", needed_lines_cnt=1):
 
 
 def md5_checksum(file, out, md5):
+    """
+    Compare mdh5 hash of file to md5 value retrieved
+    from ENA file report
+
+    Parameters
+    ----------
+    file: str
+            Name of the downloaded Run Accession file
+    out: str
+            path to the directory
+    md5: str
+            md5 hash retrieved from ENA file report
+    Returns
+    -------
+    bool
+        True if mdh5 hash of file matches md5 value retrieved
+        from ENA file report, othervise False
+    """
+
     md5_hash = hashlib.md5()
     try:
         with open(f"{out}/{file}", "rb") as f:

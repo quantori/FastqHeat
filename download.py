@@ -8,20 +8,35 @@ from study_info.check_result import check_loaded_run, md5_checksum
 
 def download_run_fasterq_dump(term, terms, run, out, total_spots=1):
     """
-    Download the run from database using fasterq_dump and check its params
+    Download the run from from NCBI's Sequence Read Archive (SRA)
+    using fasterq_dump and check completeness of downloaded
+    fastq file
 
     Parameters
     ----------
+    term: str
+            a string of Study Accession
+    terms: list
+            a list of Study Accessions from provided .txt file
+            this parameter can be empy if single accession is provided
     run: str
-            Run's name like SRR...
+            a string of Run Accession
     out: str
             The output directory
+    total_spots: int
+            Number of total spots of each Run Accession
+
+    Returns
+    -------
+    bool
+        True if run was correctly downloaded, otherwise- False
     """
     if len(terms) != 0:
         download_bash_command = f"fasterq-dump {run} -O {out}/{term} -p"
         logging.debug(download_bash_command)
         logging.info('Try to download {} file'.format(run))
         os.system(download_bash_command)
+        # check completeness of the file and return boolean
         return check_loaded_run(
                 run_accession=run,
                 path=f"{out}/{term}",
@@ -34,6 +49,7 @@ def download_run_fasterq_dump(term, terms, run, out, total_spots=1):
         logging.info('Try to download {} file'.format(run))
         # execute command in commandline
         os.system(download_bash_command)
+        # check completeness of the file and return boolean
         return check_loaded_run(
                         run_accession=run,
                         path=out,
@@ -43,15 +59,28 @@ def download_run_fasterq_dump(term, terms, run, out, total_spots=1):
 
 def download_run_ftp(term, terms, run, out):
     """
-    Download the run from database using FTP and check its params
+    Download the run from from European Nucleotide Archive (ENA)
+    using FTP and check completeness of downloaded
+    gunzipped fastq file
 
     Parameters
     ----------
+    term: str
+            a string of Study Accession
+    terms: list
+            a list of Study Accessions from provided .txt file
+            this parameter can be empy if single accession is provided
     run: str
-            Run's name like SRR...
+            a string of Run Accession
     out: str
             The output directory
+
+    Returns
+    -------
+    bool
+        True if run was correctly downloaded, otherwise- False
     """
+
     bash_command = f"https://www.ebi.ac.uk/ena/portal/api/filereport?accession={run}&result=read_run&fields=fastq_ftp,fastq_md5&format=json"
     response = requests.get(bash_command)
     ftps = response.json()[0]['fastq_ftp'].split(';')
@@ -66,6 +95,7 @@ def download_run_ftp(term, terms, run, out):
             logging.debug(download_bash_command)
             logging.info('Try to download {} file'.format(run))
             os.system(download_bash_command)
+            # check completeness of the file and return boolean
             correctness.append(md5_checksum(SRR, f"{out}/{term}", md5))
         else:
             download_bash_command = f"curl -L {ftps[i]} -o {out}/{SRR}"
@@ -73,21 +103,35 @@ def download_run_ftp(term, terms, run, out):
             logging.info('Try to download {} file'.format(run))
             # execute command in commandline
             os.system(download_bash_command)
+            # check completeness of the file and return boolean
             correctness.append(md5_checksum(SRR, out, md5))
     return all(correctness)
 
 
 def download_run_aspc(term, terms, run, out):
     """
-    Download the run from database using Aspera and check its params
+    Download the run from from European Nucleotide Archive (ENA)
+    using Aspera and check completeness of downloaded
+    gunzipped fastq file
 
     Parameters
     ----------
+    term: str
+            a string of Study Accession
+    terms: list
+            a list of Study Accessions from provided .txt file
+            this parameter can be empy if single accession is provided
     run: str
-            Run's name like SRR...
+            a string of Run Accession
     out: str
             The output directory
+
+    Returns
+    -------
+    bool
+        True if run was correctly downloaded, otherwise- False
     """
+
     bash_command = f"https://www.ebi.ac.uk/ena/portal/api/filereport?accession={run}&result=read_run&fields=fastq_aspera,fastq_md5&format=json"
     response = requests.get(bash_command)
     asperas = response.json()[0]['fastq_aspera'].split(';')
@@ -106,6 +150,7 @@ def download_run_aspc(term, terms, run, out):
                 logging.info('Try to download {} file'.format(run))
                 # execute command in commandline
                 os.system(download_bash_command)
+                # check completeness of the file and return boolean
                 correctness.append(md5_checksum(SRR, f"{out}/{term}", md5))
         else:
             if out != '.':
@@ -118,5 +163,6 @@ def download_run_aspc(term, terms, run, out):
                 logging.info('Try to download {} file'.format(run))
                 # execute command in commandline
                 os.system(download_bash_command)
+                # check completeness of the file and return boolean
                 correctness.append(md5_checksum(SRR, out, md5))
     return all(correctness)

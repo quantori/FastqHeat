@@ -22,13 +22,13 @@ def handle_run(accession, method, total_spots=1):
 
     Parameters
     ----------
-    path: str
     accession: str
-    total_spots: object
+    path: str
+    total_spots: int
 
     Returns
     -------
-
+        bool
     """
     try:
         if accession in accession_list:
@@ -74,41 +74,71 @@ def handle_run(accession, method, total_spots=1):
 
 if __name__ == "__main__":
     """
-    This script help to download metagenomic data (in fastq format).
-        
+    This script help to download metagenomic data (in fastq/fastq.gz format) as well as metadata (in CSV/JSON/YAML format).
+
     How it works.
-   
+
         Parameters:
-    
+
     positional arguments:
-            term              The name of SRA Study identifier, looks like SRP... or ERP... or DRP...
+            term              The name of Study/Sample/Experiment/Submission
+                              Accession or the name of the file with
+                              Study Accessions
 
     optional arguments:
         -h, --help            show this help message and exit
-        -L, --log             To point logging level (debug, info, warning, error. "info" by default)
-        -M, --method          Method of downloading fastq or fastq.gz file. There are 3 options for downloading data: FTP, Aspera and
-                              fasterq_dump. To use Aspera specify after -M command a, to use FTP specify f, and for fasterq_dump specify q.
-        -N, --only            The only_list. The list of the certain items to download.
+        -L, --log             To point logging level (debug, info, warning,
+                              error. "info" by default)
+        -M, --method          Method of downloading fastq or fastq.gz file.
+                              There are 3 options for downloading data: FTP,
+                              Aspera and fasterq_dump. To use Aspera specify
+                              after -M command a, to use FTP specify f, and
+                              for fasterq_dump specify q.
+        -E, --explore         Explorer chooses between 2 options of what to do
+                              with accession download metadata or run
+                              itself from SRA/ENA. To download metadata
+                              it should be followed with i, to download
+                              runs- r.
+        -F, --format          File format of downloaded metadata file.
+                              3 options are available: CSV, JSON, YAML.
+                              To download CSV choose c, JSON- j and YAML- y.
+        -V, --value           Values for ENA report to retrieve metadata. By
+                              default values are provided, but can be manually
+                              entered too. Default values are: study_accession,
+                              sample_accession,experiment_accession,read_count,base_count.
                               To write with '"," and without spaces.
-        -P, --skip            The skip_list. The list of the items to do not download. To write with ',' and without spaces.
+        -N, --only            The only_list. The list of the certain items
+                              to download.
+                              To write with '"," and without spaces.
+        -P, --skip            The skip_list. The list of the items to do not
+                              download. To write with ',' and without spaces.
                               Warning: Skip parameter has the biggest priority.
-                              If one run id has been pointed in skip_list and in only_list, this run will be skipped.
+                              If one run id has been pointed in skip_list and
+                              in only_list, this run will be skipped.
         -O, --out             Output directory
         -S, --show            show lxml file with all Run data (yes/no)
-    
+
     Template of query:
             fastqheat.py {SRA Study identifier name SRP...} --skip_list {run id SRR...} --show yes 
             
             fastqheat.py {SRA Study identifier name SRP...} --only_list {run id SRR...} 
-   
+
     Ex 1: download all into the directory
                         python3 fastqheat.py SRP163674 --out /home/user/tmp
     Ex 2: download all files except some pointed items.
                         python3 fastqheat.py SRP163674 -P "SRR7969889,SRR7969890,SRR7969890"
     Ex 3: download only pointed items and show the details of the loading process.
                         python3 fastqheat.py SRP163674 -N "SRR7969891,SRR7969892" --show yes
-    
-        
+    Ex 4: download all files using Aspera
+                        python3 fastqheat.py SRP163674 -M a
+    Ex 5: download metadata and format of file is CSV
+                        python3 fastqheat.py SRP163674 -E i -F c
+    Ex 6: download metadata, format of file is YAML and values are experiment_title, base_count
+                        python3 fastqheat.py SRP163674 -E i -F c -V "experiment_title,base_count"
+    Ex 7: download runs of multiple study accessions from .txt file using fasterq_dump
+                        python3 fastqheat.py *.txt -M q
+
+
     """
     # For debugging use
     # term = 'SRP150545'  #   6 files more than 2-3Gb each
@@ -145,22 +175,24 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-P", "--skip",
-        help="The skip_list. The list of the items to do not download. To write with ',' and without spaces. \
-        Warning: Skip parameter has the biggest priority.\
-        If one run id has been pointed in skip_list and in only_list, this run will be skipped.",
+        help="The skip_list. The list of the items to do not download. \
+        To write with ',' and without spaces. Warning: Skip parameter\
+        has the biggest priority.\
+        If one run id has been pointed in skip_list and in only_list, \
+        this run will be skipped.",
         action="store"
     )
     parser.add_argument(
         "-E", "--explore",
-        help="Choose between 2 options:download runs or download metadata. Argument should be followed with \
-        i for Metadata and r for Runs.\
+        help="2 options:download runs or download metadata. \
+        Argument should be followed with i for Metadata and r for Runs.\
         By default it will always be set to r to retrieve runs.",
         action="store",
         default="r"
     )
     parser.add_argument(
         "-F", "--format",
-        help="Choose which format to use to download metadata:CSV, JSON on YAML. \
+        help="File format of downloaded metadata:CSV, JSON on YAML. \
         c for CSV, j for JSON and y for YAML.\
         By default it will always be set to j.",
         action="store",
@@ -168,9 +200,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-V", "--value",
-        help="Choose column selection from ENA. To write with ',' and without spaces. \
+        help="Column selection from ENA. To write with ',' and without spaces. \
         By default it will always be set to this list:\
-        study_accession,sample_accession,experiment_accession,read_count,base_count.",
+        study_accession,sample_accession,experiment_accession,read_count,base_count",
         action="store",
         default="study_accession,sample_accession,experiment_accession,read_count,base_count"
     )
@@ -197,7 +229,7 @@ if __name__ == "__main__":
         logging.error('Choose option for data retrieval')
         exit(0)
 
-    # choose file format of downloaded metadata
+    # choose file format of retrieved metadata
     if op == "i":
         if args.format:
             ff = args.format
@@ -451,4 +483,7 @@ if __name__ == "__main__":
         exit(0)
     except KeyboardInterrupt:
         print("Session was interrupted!")
+        exit(0)
+    except:
+        print("Something went wrong! Exiting the system!")
         exit(0)

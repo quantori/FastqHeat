@@ -1,5 +1,5 @@
 ## Installation instructions
-* Ensure you have fastq-dump installed. [Installation of sra toolkit from binaries](https://github.com/ncbi/sra-tools/wiki/HowTo:-Binary-Installation)
+* Ensure you have fasterq-dump installed. [Installation of sra toolkit from binaries](https://github.com/ncbi/sra-tools/wiki/HowTo:-Binary-Installation) or Aspera CLI installed. [Installation of Aspera CLI](https://www.ibm.com/docs/en/aci/3.9.2?topic=aspera-command-line-interface-user-guide-linux)
 
 * Also you need to add a path to the tools permanently(!).  
 On MacOS you need add the lines `/Users/username/path_to_the_sra/sratoolkit.(version)/bin` into the file `/etc/paths`. (And restart the terminal).
