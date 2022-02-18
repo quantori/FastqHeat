@@ -150,21 +150,25 @@ async def get_total_spot(session, accession):
 
 
 def get_total_spots_with_only_list(only_list):
-    async def main():
-        async with aiohttp.ClientSession() as session:
-            tasks = []
-            for accession in only_list:
-                task = asyncio.ensure_future(get_total_spot(
-                                            session,
-                                            accession)
-                                            )
-                tasks.append(task)
+    try:
+        async def main():
+            async with aiohttp.ClientSession() as session:
+                tasks = []
+                for accession in only_list:
+                    task = asyncio.ensure_future(get_total_spot(
+                                                session,
+                                                accession)
+                                                )
+                    tasks.append(task)
 
-            total_spots = await asyncio.gather(*tasks)
-        return total_spots
+                total_spots = await asyncio.gather(*tasks)
+            return total_spots
 
-    x = asyncio.run(main())
-    return x
+        x = asyncio.run(main())
+        return x
+    except TypeError as e:
+        logging.error(e)
+        return []
 
 
 def get_run_uid_with_only_list(only_list):
@@ -215,7 +219,7 @@ def get_run_uid_with_only_list(only_list):
             total_spots.append(int(elem.attrib['total_spots']))
     logging.info('List of runs with only: {}'.format(SRRs))
     return SRRs, total_spots
-
+print(get_run_uid_with_only_list(["fasgvargvargfs", 'vhlhv l ']))
 
 def get_run_uid_with_no_exception(webenv, query_key):
     """
@@ -362,20 +366,24 @@ async def get_accession_metadata(session, accession, value):
 
 
 def get_full_metadata(accession_list, value):
-    async def main():
-        async with aiohttp.ClientSession() as session:
-            tasks = []
-            for accession in accession_list:
-                task = asyncio.ensure_future(get_accession_metadata(
-                                                                    session,
-                                                                    accession,
-                                                                    value))
-                tasks.append(task)
+    try:
+        async def main():
+            async with aiohttp.ClientSession() as session:
+                tasks = []
+                for accession in accession_list:
+                    task = asyncio.ensure_future(get_accession_metadata(
+                                                                        session,
+                                                                        accession,
+                                                                        value))
+                    tasks.append(task)
 
-            metadata = await asyncio.gather(*tasks)
-            return metadata
-    x = asyncio.run(main())
-    return x
+                metadata = await asyncio.gather(*tasks)
+                return metadata
+        x = asyncio.run(main())
+        return x
+    except TypeError as e:
+        logging.error(e)
+        exit(0)
 
 
 def download_metadata(data, ff, term, out):
