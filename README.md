@@ -35,8 +35,7 @@ Read [DEVNOTES.md](https://github.com/quantori/FastqHeat/blob/master/DEVNOTES.md
 ## How it works.
 The fastqHeat connect with NCBI database through API and has API key. It use NCBI services **esearch** and **efetch**.
 
-**Warning:** The tool fasterq-dump (sra toolkit) must be preinstalled in case runs are downloaded with fasterq_dump, but if runs are downloaded using Aspera, then Asper CLI should be preinstalled.   
-
+**Warning:** The tool fasterq-dump (sra toolkit) must be preinstalled in case runs are downloaded with fasterq_dump, but if runs are downloaded using Aspera, then Asper CLI should be preinstalled. Also, to be able to use API key for E-utilities, create *.env file, with environmental variable API_KEY. 
 
 The tool fasterq-dump as a parameter use a run identifier. A run id is within an experiment and has SRR prefix.  
 For this wrapper you need to put SRA Study identifier, which starts from SRP prefix, or name of .txt file, which contains multiple study accessions.  
