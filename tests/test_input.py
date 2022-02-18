@@ -1,159 +1,126 @@
 import time
+import json
 
 import pytest
+from study_info.get_sra_study_info import (
+    get_full_metadata, get_run_uid_with_no_exception,
+    get_run_uid_with_only_list, get_run_uid_with_skipped_list,
+    get_run_uid_with_total_list, get_total_spots_with_only_list,
+    get_webenv_and_query_key_with_skipped_list,
+    get_webenv_and_query_key_with_total_list)
 
-from manage_lists.filter_list import remove_skipped_idx, get_only_idx
-from study_info.get_sra_study_info import get_retmax, get_id_list, get_run_uid_by_id
 
+class TestInputESEARCH_EFETCHParams:
 
-class TestInputESEARCHParams:
-
-    # *******************************************************************************************************
-    # Test list 1
-    # *******************************************************************************************************
-
-    # To get max count of runs in the study from SRA database. Correct term (SRA study identifier) was send.
-    def test_get_ret_max_correct_term(self):
-        assert (get_retmax('SRP150545') == 6)
-
-    def test_get_ret_max_correct_term_2(self):
+    # Test get_run_uid_with_no_exception function with correct input parameters
+    def test_get_run_uid_with_no_exception_with_total_list(self):
         time.sleep(1)
-        assert (get_retmax('SRP163674') == 129)
+        webenv, query_key = get_webenv_and_query_key_with_total_list(
+                        "SRP163674")
+        SRRs, total_spots = get_run_uid_with_no_exception(webenv, query_key)
+        assert (len(SRRs), len(total_spots)) == (129, 129)
 
-    def test_get_ret_max_correct_term_3(self):
-        # To check identifiers can there https://www.ncbi.nlm.nih.gov/sra/?term=40
-        # It's strange: there are 4 runs in the SRA study with uid 40, but sra database return 1
-        time.sleep(1)
-        assert (get_retmax('40') == 1)
-
-    # To get max count of runs in the study from SRA database. Incorrect term (SRA study identifier) was send.
-    def test_get_ret_max_incorrect_term(self):
-        time.sleep(1)
-        assert (get_retmax('SRP16367434shhhh4') == 0)
-
-    # To get max count of runs in the study from SRA database. Incorrect term (SRA study identifier) was send.
-    def test_get_ret_max_incorrect_term_2(self):
-        time.sleep(1)
-        assert (get_retmax('1') == 0)
-
-    # *******************************************************************************************************
-    # Test list 2
-    # *******************************************************************************************************
-
-    # To get the list of run idx which were received by SRA Study identifier
-    # and retmax parameters (max cnt of runs in study)
-
-    # Correct term AND correct retmax
-    def test_get_id_list_correct(self):
-        time.sleep(1)
-        assert (get_id_list(
-            term='SRP150545',
-            retmax=6
-        ) == ['5704372', '5704371', '5704370', '5704369', '5704368', '5704367'])
-
-    # Correct term AND INcorrect retmax (more than accessed) - it's normal situation
-    def test_get_id_list_correct_2(self):
-        time.sleep(1)
-        assert (get_id_list(
-            term='SRP150545',
-            retmax=60
-        ) == ['5704372', '5704371', '5704370', '5704369', '5704368', '5704367'])
-
-    # Correct term AND INcorrect retmax (less than accessed) - it's normal situation (we will receive less idx)
-    def test_get_id_list_correct_3(self):
-        time.sleep(1)
-        assert (get_id_list(
-            term='SRP150545',
-            retmax=2
-        ) == ['5704372', '5704371'])
-
-    # InCorrect term  - it's wrong situation
-    def test_get_id_list_incorrect(self):
+    # Test get_webenv_and_query_key_with_total_list function with incorrect input parameters
+    def test_get_webenv_and_query_key_with_total_list_incorrect(self):
         time.sleep(1)
         with pytest.raises(SystemExit):
-            get_id_list(
-                term='SRP150545efrghty',
-                retmax=60)
+            get_webenv_and_query_key_with_total_list(
+                        "ahethaerhatef")
 
-
-class TestInputEFETCHParams:
-
-    # Get the Run parameters by its Id through efetch service
-
-    # Test get function with correct input parameters
-    def test_get_run_uid_by_id_correct(self):
+    # Test get_run_uid_with_no_exception function with correct input parameters
+    def test_get_run_uid_with_no_exception_with_skipped_list(self):
         time.sleep(1)
-        assert get_run_uid_by_id(
-            id=5704372
-        ) == {
-            'accession': 'SRR7343998',
-            'alias': 'SE3A_S9_R1_001.fastq.gz',
-            'cluster_name': 'public',
-            'is_public': 'true',
-            'load_done': 'true',
-            'published': '2018-06-14 21:22:14',
-            'size': '11190505425',
-            'static_data_available': '1',
-            'total_bases': '24231063431',
-            'total_spots': '80887417'
-        }
+        webenv, query_key = get_webenv_and_query_key_with_skipped_list(
+                        "SRP163674", ['SRR7969880', 'SRR7969881', 'SRR7969882', 'SRR7969883'])
+        SRRs, total_spots = get_run_uid_with_no_exception(webenv, query_key)
+        assert (len(SRRs), len(total_spots)) == (125, 125)
 
-    # Test get function with incorrect input parameters or with the UID where RUN tag is absent
-    def test_get_run_uid_by_id_incorrect(self):
+    # Test get_webenv_and_query_key_with_skipped_list function with incorrect input parameters
+    def test_get_webenv_and_query_key_with_skipped_list_incorrect(self):
         time.sleep(1)
         with pytest.raises(SystemExit):
-            get_run_uid_by_id(id='abababa')
+            get_webenv_and_query_key_with_skipped_list(
+                        "bazhreahbre", ['SRR7969880', 'SRR7969881', 'SRR7969882', 'SRR7969883'])
+
+    # Test get_run_uid_with_only_list function with correct input parameters
+    def test_get_run_uid_with_only_list(self):
+        time.sleep(1)
+        assert get_run_uid_with_only_list(
+            only_list=['SRR7969880', 'SRR7969881', 'SRR7969882', 'SRR7969883']
+        ) == (['SRR7969880', 'SRR7969881', 'SRR7969882', 'SRR7969883'], [50623, 29433, 36017, 20063])
+
+    # Test get_run_uid_with_only_list function with incorrect input parameters
+    def test_get_run_uid_with_only_list_incorrect(self):
+        time.sleep(1)
+        assert get_run_uid_with_only_list(
+            only_list=['agarhaerhbefd', 'vhlhv l', 'SRR7969882', 'SRR7969883']
+        ) == (['SRR7969882', 'SRR7969883'], [36017, 20063])
 
 
-class TestFilterAccessionLists:
+class TestENADataRetriaval:
 
-    #  To test functions which filter an accession list by including or excluding run names
+    # Test get_run_uid_with_total_list function with correct input parameters
+    def test_get_run_uid_with_total_list(self):
+        SRRs, total_spots = get_run_uid_with_total_list("SRP163674", "q")
+        assert (len(SRRs), len(total_spots)) == (129, 129)
 
-    def test_remove_skipped_idx_1(self):
-        assert set(remove_skipped_idx(
-            total_list=['SRR7343998', 'SRR7343999', 'SRR7344000'],
-            skip_list=['SRR7343997']
-        )) == {'SRR7343998', 'SRR7343999', 'SRR7344000'}
+    # Test get_run_uid_with_total_list function with incorrect input parameters
+    def test_get_run_uid_with_total_list_incorrect(self):
+        with pytest.raises(json.decoder.JSONDecodeError):
+            get_run_uid_with_total_list("bhrhbaregbr", "q")
 
-    def test_remove_skipped_idx_2(self):
-        assert set(remove_skipped_idx(
-            total_list=['SRR7343998', 'SRR7343999', 'SRR7344000'],
-            skip_list=['SRR7343999'])
-        ) == {'SRR7343998', 'SRR7344000'}
+    # Test get_run_uid_with_skipped_list function with correct input parameters
+    # Method is q, whic is used for fasterq_dump
+    def test_get_run_uid_with_skipped_list_with_q_method(self):
+        time.sleep(1)
+        SRRs, total_spots = get_run_uid_with_skipped_list(
+                                                    "SRP163674", ['SRR7969880', 'SRR7969881', 'SRR7969882', 'SRR7969883'], "q")
+        assert (len(SRRs), len(total_spots)) == (125, 125)
 
-    def test_remove_skipped_idx_3(self):
-        assert remove_skipped_idx(
-            total_list=['SRR7343998', 'SRR7343999', 'SRR7344000']
-        ) == ['SRR7343998', 'SRR7343999', 'SRR7344000']
+    # Test get_run_uid_with_skipped_list function with incorrect input parameters
+    # Method is q, whic is used for fasterq_dump
+    def test_get_run_uid_with_skipped_list_with_q_method_incorrect(self):
+        time.sleep(1)
+        with pytest.raises(json.decoder.JSONDecodeError):
+            get_run_uid_with_skipped_list("afvsdgvsegvd",
+                                          ['SRR7969880', 'SRR7969881', 'SRR7969882', 'SRR7969883'], "q")
 
-    def test_get_only_idx_1(self):
-        f_return = get_only_idx(
-            total_list=['SRR7343998', 'SRR7343999', 'SRR7344000'],
-            only_list=['SRR7343999', 'SRR7344000']
-        )
-        assert set(f_return) == {'SRR7343999', 'SRR7344000'}
+    # Test get_run_uid_with_skipped_list function with correct input parameters
+    # Method is f/a, whic is used for FTP/Aspera
+    def test_get_run_uid_with_skipped_list_without_q_method(self):
+        time.sleep(1)
+        SRRs, total_spots = get_run_uid_with_skipped_list(
+                                                    "SRP163674", ['SRR7969880', 'SRR7969881', 'SRR7969882', 'SRR7969883'], "f")
+        assert (len(SRRs), len(total_spots)) == (125, 0)
 
-    def test_get_only_idx_2(self):
-        f_return = get_only_idx(
-            total_list=['SRR7343998', 'SRR7343999', 'SRR7344000'],
-            only_list=['SRR73439aa', 'SRR7344000']
-        )
-        assert set(f_return) == {'SRR7344000'}
+    # Test get_run_uid_with_skipped_list function with incorrect input parameters
+    # Method is f/a, whic is used for FTP/Aspera
+    def test_get_run_uid_with_skipped_list_without_q_method_incorrect(self):
+        time.sleep(1)
+        with pytest.raises(json.decoder.JSONDecodeError):
+            get_run_uid_with_skipped_list("afvsdgvsegvd", ['SRR7969880', 'SRR7969881', 'SRR7969882', 'SRR7969883'], "f")
 
-    def test_get_only_idx_3(self):
-        f_return = get_only_idx(
-            total_list=['SRR7343998', 'SRR7343999', 'SRR7344000'],
-            only_list=['aaa', 'SR', 'ghgh']
-        )
-        assert f_return == []
+    # Test get_total_spots_with_only_list function with correct input parameters
+    def test_get_total_spots_with_only_list(self):
+        time.sleep(1)
+        mock_total_spots = [50623, 29433, 36017, 20063]
+        total_spots = get_total_spots_with_only_list(['SRR7969880', 'SRR7969881', 'SRR7969882', 'SRR7969883'])
+        assert mock_total_spots == total_spots
 
-    def test_get_only_idx_4(self):
-        f_return = get_only_idx(
-            total_list=['SRR7343998', 'SRR7343999', 'SRR7344000'],
-            only_list=[]
-        )
-        assert f_return == ['SRR7343998', 'SRR7343999', 'SRR7344000']
+    # Test get_total_spots_with_only_list function with incorrect input parameters
+    def test_get_total_spots_with_only_list_incorrect(self):
+        time.sleep(1)
+        assert get_total_spots_with_only_list(['gasgweagveasdv', 'SRR7969881', 'SRR7969882', 'SRR7969883']) == []
 
-    def test_get_only_idx_5(self):
-        f_return = get_only_idx(total_list=['SRR7343998', 'SRR7343999', 'SRR7344000'])
-        assert f_return == ['SRR7343998', 'SRR7343999', 'SRR7344000']
+    # Test get_full_metadata function with correct input parameters
+    def test_get_full_metadata(self):
+        time.sleep(1)
+        mock_metadata = [{'run_accession': 'SRR7969880', 'experiment_accession': 'SRX4803380', 'base_count': '22674621'}, {'run_accession': 'SRR7969881', 'experiment_accession': 'SRX4803379', 'base_count': '13180909'}, {'run_accession': 'SRR7969882', 'experiment_accession': 'SRX4803378', 'base_count': '16173418'}, {'run_accession': 'SRR7969883', 'experiment_accession': 'SRX4803377', 'base_count': '8993061'}]
+        metadata = get_full_metadata(['SRR7969880', 'SRR7969881', 'SRR7969882', 'SRR7969883'], "experiment_accession,base_count")
+        assert mock_metadata == metadata
+
+    # Test get_full_metadata function with incorrect input parameters
+    def test_get_full_metadata_incorrect(self):
+        time.sleep(1)
+        with pytest.raises(SystemExit):
+            get_full_metadata(['ghf,ckck', 'SRR7969881', 'SRR7969882', 'SRR7969883'], "experiment_accession,  base_count")
