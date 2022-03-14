@@ -2,79 +2,129 @@ import argparse
 import logging
 import os
 import ssl
+import re
 
 import requests
 import urllib3
 
 from download import (download_run_aspc, download_run_fasterq_dump,
                       download_run_ftp)
-from study_info.get_sra_study_info import (
-    download_metadata, get_full_metadata, get_run_uid_with_no_exception,
-    get_run_uid_with_only_list, get_run_uid_with_skipped_list,
-    get_run_uid_with_total_list, get_total_spots_with_only_list,
-    get_webenv_and_query_key_with_skipped_list,
-    get_webenv_and_query_key_with_total_list)
+from study_info.get_sra_study_info import get_run_uid
 
 
-def handle_run(accession, method, total_spots=1):
-    """
-    To download and check the quality of loading file
-
-    Parameters
-    ----------
-    accession: str
-    path: str
-    total_spots: int
-
-    Returns
-    -------
-        bool
-    """
-    try:
-        if accession in accession_list:
-            if method == 'f':
-                if(download_run_ftp(term=term, terms=terms,
-                                    run=accession, out=out_dir)):
-                    logging.info('A try was finished.')
-                    logging.info("Run {} was correctly downloaded".format(
-                        accession))
-                    return True
+def handle_methods(term, method, out):
+    SRR_pattern = re.compile(r'^(SRR|ERR|DRR)\d+$')
+    SRP_pattern = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
+    if method == "f":
+        if SRR_pattern.search(term) is not None:
+            accession = term
+            success = download_run_ftp(accession, term, out)
+            if success:
+                pass
+            else:
+                logging.warning(f"Failed to download {accession}. Trying once more.")
+                success = download_run_ftp(accession, term, out)
+                if success:
+                    logging.info("The second try was successful!")
+                    pass
                 else:
-                    logging.warning("Run {} was loaded incorrectly!".format(
-                        accession))
-                    return False
-            elif method == 'q':
-                if(download_run_fasterq_dump(term=term, terms=terms,
-                                             run=accession, out=out_dir,
-                                             total_spots=float(total_spots))):
-                    logging.info('A try was finished.')
-                    logging.info("Run {} was correctly downloaded".format(
-                        accession))
-                    return True
+                    logging.error(f"Failed the second try. Skipping the {accession}")
+                    pass
+        elif SRP_pattern.search(term) is not None:
+            accession_list, total_spots = get_run_uid(term)
+            for i in range(0, len(accession_list)):
+                accession = accession_list[i]
+                success = download_run_ftp(accession, term, out)
+
+                if success:
+                    pass
                 else:
-                    logging.warning("Run {} was loaded incorrectly!".format(
-                        accession))
-                    return False
-            elif method == 'a':
-                if(download_run_aspc(term=term, terms=terms,
-                                     run=accession, out=out_dir)):
-                    logging.info('A try was finished.')
-                    logging.info("Run {} was correctly downloaded".format(
-                        accession))
-                    return True
+                    logging.warning(f"Failed to download {accession}. Trying once more.")
+                    success = download_run_ftp(accession, term, out)
+                    if success:
+                        logging.info("The second try was successful!")
+                        pass
+                    else:
+                        logging.error(f"Failed the second try. Skipping the {accession}")
+                        pass
+
+    if method == "a":
+        if SRR_pattern.search(term) is not None:
+            accession = term
+            success = download_run_aspc(accession, term, out)
+
+            if success:
+                pass
+            else:
+                logging.warning(f"Failed to download {accession}. Trying once more.")
+                success = download_run_aspc(accession, term, out)
+                if success:
+                    logging.info("The second try was successful!")
+                    pass
                 else:
-                    logging.warning("Run {} was loaded incorrectly!".format(
-                        accession))
-                    return False
-    except:
-        logging.debug("Accession {} not in the accession_list".format(
-                accession))
-        return True
+                    logging.error(f"Failed the second try. Skipping the {accession}")
+                    pass
+        if SRP_pattern.search(term) is not None:
+            accession_list, total_spots = get_run_uid(term)
+            for i in range(0, len(accession_list)):
+                accession = accession_list[i]
+                success = download_run_aspc(accession, term, out)
+
+                if success:
+                    pass
+                else:
+                    logging.warning(f"Failed to download {accession}. Trying once more.")
+                    success = download_run_aspc(accession, term, out)
+                    if success:
+                        logging.info("The second try was successful!")
+                        pass
+                    else:
+                        logging.error(f"Failed the second try. Skipping the {accession}")
+                        pass
+
+    if method == "q":
+        if SRR_pattern.search(term) is not None:
+            accession = term
+            bash_command = f"https://www.ebi.ac.uk/ena/portal/api/filereport?accession={accession}&result=read_run&fields=read_count&format=json"
+            response = requests.get(bash_command)
+            total_spots = int(response.json()[0]['read_count'])
+            success = download_run_fasterq_dump(accession, term, total_spots, out)
+
+            if success:
+                pass
+            else:
+                logging.warning(f"Failed to download {accession}. Trying once more.")
+                success = download_run_fasterq_dump(accession, term, total_spots, out)
+                if success:
+                    logging.info("The second try was successful!")
+                    pass
+                else:
+                    logging.error(f"Failed the second try. Skipping the {accession}")
+                    pass
+
+        if SRP_pattern.search(term) is not None:
+            accession_list, total_spots = get_run_uid(term)
+            for i in range(0, len(accession_list)):
+                accession = accession_list[i]
+                read_count = total_spots[i]
+                success = download_run_fasterq_dump(accession, term, read_count, out)
+
+                if success:
+                    pass
+                else:
+                    logging.warning(f"Failed to download {accession}. Trying once more.")
+                    success = download_run_fasterq_dump(accession, term, read_count, out)
+                    if success:
+                        logging.info("The second try was successful!")
+                        pass
+                    else:
+                        logging.error(f"Failed the second try. Skipping the {accession}")
+                        pass
 
 
 if __name__ == "__main__":
     """
-    This script help to download metagenomic data (in fastq/fastq.gz format) as well as metadata (in CSV/JSON/YAML format).
+    This script helps to download runs using different methods.
 
     How it works.
 
@@ -94,49 +144,17 @@ if __name__ == "__main__":
                               Aspera and fasterq_dump. To use Aspera specify
                               after -M command a, to use FTP specify f, and
                               for fasterq_dump specify q.
-        -E, --explore         Explorer chooses between 2 options of what to do
-                              with accession download metadata or run
-                              itself from SRA/ENA. To download metadata
-                              it should be followed with i, to download
-                              runs- r.
-        -F, --format          File format of downloaded metadata file.
-                              3 options are available: CSV, JSON, YAML.
-                              To download CSV choose c, JSON- j and YAML- y.
-        -V, --value           Values for ENA report to retrieve metadata. By
-                              default values are provided, but can be manually
-                              entered too. Default values are: study_accession,
-                              sample_accession,experiment_accession,read_count,base_count.
-                              To write with '"," and without spaces.
-        -N, --only            The only_list. The list of the certain items
-                              to download.
-                              To write with '"," and without spaces.
-        -P, --skip            The skip_list. The list of the items to do not
-                              download. To write with ',' and without spaces.
-                              Warning: Skip parameter has the biggest priority.
-                              If one run id has been pointed in skip_list and
-                              in only_list, this run will be skipped.
         -O, --out             Output directory
-        -S, --show            show lxml file with all Run data (yes/no)
-
-    Template of query:
-            fastqheat.py {SRA Study identifier name SRP...} --skip_list {run id SRR...} --show yes 
-            
-            fastqheat.py {SRA Study identifier name SRP...} --only_list {run id SRR...} 
 
     Ex 1: download all into the directory
                         python3 fastqheat.py SRP163674 --out /home/user/tmp
-    Ex 2: download all files except some pointed items.
-                        python3 fastqheat.py SRP163674 -P "SRR7969889,SRR7969890,SRR7969890"
-    Ex 3: download only pointed items and show the details of the loading process.
-                        python3 fastqheat.py SRP163674 -N "SRR7969891,SRR7969892" --show yes
-    Ex 4: download all files using Aspera
+    Ex 2: download all using Aspera CLI
                         python3 fastqheat.py SRP163674 -M a
-    Ex 5: download metadata and format of file is CSV
-                        python3 fastqheat.py SRP163674 -E i -F c
-    Ex 6: download metadata, format of file is YAML and values are experiment_title, base_count
-                        python3 fastqheat.py SRP163674 -E i -F c -V "experiment_title,base_count"
-    Ex 7: download runs of multiple study accessions from .txt file using fasterq_dump
+    Ex 3: download runs of multiple study accessions from .txt file using fasterq_dump
                         python3 fastqheat.py *.txt -M q
+    Ex 4: download all files from Sample Accession
+                        python3 fastqheat.py SAMN10181503
+
 
 
     """
@@ -156,11 +174,11 @@ if __name__ == "__main__":
         action="store",
         default="info"
     )
-    parser.add_argument(
-        "-N", "--only",
-        help="The only_list. The list of the certain items to download. To write with ',' and without spaces.",
-        action="store"
-    )
+    # parser.add_argument(
+    #     "-N", "--only",
+    #     help="The only_list. The list of the certain items to download. To write with ',' and without spaces.",
+    #     action="store"
+    # )
     parser.add_argument(
         "-O", "--out",
         help="Output directory",
@@ -173,45 +191,45 @@ if __name__ == "__main__":
         action="store",
         default='q'
     )
-    parser.add_argument(
-        "-P", "--skip",
-        help="The skip_list. The list of the items to do not download. \
-        To write with ',' and without spaces. Warning: Skip parameter\
-        has the biggest priority.\
-        If one run id has been pointed in skip_list and in only_list, \
-        this run will be skipped.",
-        action="store"
-    )
-    parser.add_argument(
-        "-E", "--explore",
-        help="2 options:download runs or download metadata. \
-        Argument should be followed with i for Metadata and r for Runs.\
-        By default it will always be set to r to retrieve runs.",
-        action="store",
-        default="r"
-    )
-    parser.add_argument(
-        "-F", "--format",
-        help="File format of downloaded metadata:CSV, JSON on YAML. \
-        c for CSV, j for JSON and y for YAML.\
-        By default it will always be set to j.",
-        action="store",
-        default="j"
-    )
-    parser.add_argument(
-        "-V", "--value",
-        help="Column selection from ENA. To write with ',' and without spaces. \
-        By default it will always be set to this list:\
-        study_accession,sample_accession,experiment_accession,read_count,base_count",
-        action="store",
-        default="study_accession,sample_accession,experiment_accession,read_count,base_count"
-    )
-    parser.add_argument(
-        "-S", "--show",
-        help="To show lxml file in a terminal with all Run data (yes/no).",
-        action="store",
-        default="no"
-    )
+    # parser.add_argument(
+    #     "-P", "--skip",
+    #     help="The skip_list. The list of the items to do not download. \
+    #     To write with ',' and without spaces. Warning: Skip parameter\
+    #     has the biggest priority.\
+    #     If one run id has been pointed in skip_list and in only_list, \
+    #     this run will be skipped.",
+    #     action="store"
+    # )
+    # parser.add_argument(
+    #     "-E", "--explore",
+    #     help="2 options:download runs or download metadata. \
+    #     Argument should be followed with i for Metadata and r for Runs.\
+    #     By default it will always be set to r to retrieve runs.",
+    #     action="store",
+    #     default="r"
+    # )
+    # parser.add_argument(
+    #     "-F", "--format",
+    #     help="File format of downloaded metadata:CSV, JSON on YAML. \
+    #     c for CSV, j for JSON and y for YAML.\
+    #     By default it will always be set to j.",
+    #     action="store",
+    #     default="j"
+    # )
+    # parser.add_argument(
+    #     "-V", "--value",
+    #     help="Column selection from ENA. To write with ',' and without spaces. \
+    #     By default it will always be set to this list:\
+    #     study_accession,sample_accession,experiment_accession,read_count,base_count",
+    #     action="store",
+    #     default="study_accession,sample_accession,experiment_accession,read_count,base_count"
+    # )
+    # parser.add_argument(
+    #     "-S", "--show",
+    #     help="To show lxml file in a terminal with all Run data (yes/no).",
+    #     action="store",
+    #     default="no"
+    # )
 
     args = parser.parse_args()
 
@@ -222,28 +240,28 @@ if __name__ == "__main__":
         logging.error('Choose any method for data retrieval')
         exit(0)
 
-    # choose what to download metadata or runs
-    if args.explore:
-        op = args.explore
-    else:
-        logging.error('Choose option for data retrieval')
-        exit(0)
+    # # choose what to download metadata or runs
+    # if args.explore:
+    #     op = args.explore
+    # else:
+    #     logging.error('Choose option for data retrieval')
+    #     exit(0)
 
-    # choose file format of retrieved metadata
-    if op == "i":
-        if args.format:
-            ff = args.format
-        else:
-            logging.error('Choose option for metadata format')
-            exit(0)
+    # # choose file format of retrieved metadata
+    # if op == "i":
+    #     if args.format:
+    #         ff = args.format
+    #     else:
+    #         logging.error('Choose option for metadata format')
+    #         exit(0)
 
-    # choose values for parameters for metadata
-    if op == "i":
-        if args.value:
-            value = args.value
-        else:
-            logging.error('Choose correct values for metadata')
-            exit(0)
+    # # choose values for parameters for metadata
+    # if op == "i":
+    #     if args.value:
+    #         value = args.value
+    #     else:
+    #         logging.error('Choose correct values for metadata')
+    #         exit(0)
 
     try:
         if method == 'q':
@@ -264,30 +282,30 @@ if __name__ == "__main__":
                         version=f'{tool} which use {fd_version} version'
                         )
 
-    # args for skipping Runs
-    if args.skip:
-        skip_list = args.skip
-        skip_list = skip_list.split(',')
-    else:
-        skip_list = []
+    # # args for skipping Runs
+    # if args.skip:
+    #     skip_list = args.skip
+    #     skip_list = skip_list.split(',')
+    # else:
+    #     skip_list = []
 
-    # args for list of needed Runs
-    if args.only:
-        only_list = args.only
-        only_list = only_list.split(',')
-        logging.debug(only_list)
-    else:
-        only_list = []
+    # # args for list of needed Runs
+    # if args.only:
+    #     only_list = args.only
+    #     only_list = only_list.split(',')
+    #     logging.debug(only_list)
+    # else:
+    #     only_list = []
 
-    # args for show lxml file of Run description
-    if args.show:
-        show = args.show
-        if show == 'yes':
-            show = True
-        else:
-            show = False
-    else:
-        show = False
+    # # args for show lxml file of Run description
+    # if args.show:
+    #     show = args.show
+    #     if show == 'yes':
+    #         show = True
+    #     else:
+    #         show = False
+    # else:
+    #     show = False
 
     out_dir = "."
     if args.out:
@@ -331,142 +349,13 @@ if __name__ == "__main__":
             format='[level=%(levelname)s]: %(message)s'
         )
 
-        # Get webenv and query_key from eSearch results to use for eFetch
-        # Use this functions only when show tree is true and there is
-        # skipped list or total list provided from single SRP
-        # The list of names of runs will be different depending on whether
-        # or not user wants to see lxml tree and whether or not
-        # all runs should be dowloaded from SRP or only specific list
-        # should be downloaded or specific list should be skipped
         if len(terms) == 0:
-            accession_list = []
-            total_spots = []
-            if show:
-                if only_list == [] and skip_list == []:
-                    webenv, query_key = get_webenv_and_query_key_with_total_list(
-                        term)
-                    accession_list, total_spots = get_run_uid_with_no_exception(
-                        webenv, query_key
-                    )
-                elif skip_list != []:
-                    webenv, query_key = get_webenv_and_query_key_with_skipped_list(
-                        term=term, skip_list=skip_list
-                    )
-                    accession_list, total_spots = get_run_uid_with_no_exception(
-                        webenv, query_key
-                    )
-                elif only_list != []:
-                    accession_list, total_spots = get_run_uid_with_only_list(
-                                                    only_list)
-            else:
-                if only_list == [] and skip_list == []:
-                    accession_list, total_spots = get_run_uid_with_total_list(term, method)
-                elif skip_list != []:
-                    accession_list, total_spots = get_run_uid_with_skipped_list(
-                                                    term, skip_list, method)
-                elif only_list != []:
-                    if method == 'q':
-                        accession_list = only_list
-                        total_spots = get_total_spots_with_only_list(only_list)
-                    else:
-                        accession_list = only_list
-            if op == "r":
-                # This branch downloads only study runs
-                # Download every Run
-                for i in range(0, len(accession_list)):
-                    if method == "q":
-                        success = handle_run(
-                                accession=accession_list[i],
-                                method=method,
-                                total_spots=total_spots[i]
-                        )
-                    else:
-                        success = handle_run(
-                                accession=accession_list[i],
-                                method=method
-                        )
-                    if success:
-                        pass
-                    else:
-                        logging.warning("Do you want to reload it one more time? (y/n)")
-                        answer = input()
-                        if answer == "y":
-                            if method == "q":
-                                handle_run(
-                                        accession=accession_list[i],
-                                        method=method,
-                                        total_spots=total_spots[i]
-                                )
-                            else:
-                                handle_run(
-                                        accession=accession_list[i],
-                                        method=method
-                                )
-                        else:
-                            pass
-                logging.info("All runs were loaded.")
-            else:
-                # This branch downloads metadata
-                logging.info('Start getting metadata from ENA')
-                metadata = get_full_metadata(accession_list, value)
-                logging.info('Start download metadata retrieved from ENA')
-                download_metadata(metadata, ff, term, out_dir)
-                logging.info("Metadata has been loaded.")
+            handle_methods(term, method, out_dir)
+            logging.info("All runs were loaded.")
         else:
-            # This branch downloads data using .txt file with multiple study accession
-            accession_list = []
-            total_spots = []
             for term in terms:
-                logging.info(f"Start working on Study Accession {term}")
-                if show:
-                    webenv, query_key = get_webenv_and_query_key_with_total_list(
-                            term=term)
-                    accession_list, total_spots = get_run_uid_with_no_exception(
-                            webenv, query_key
-                        )
-                else:
-                    accession_list, total_spots = get_run_uid_with_total_list(term, method)
-                # download every Run / metadata
-                if op == "i":
-                    # This branch downloads metadata
-                    logging.info('Start getting metadata from ENA')
-                    metadata = get_full_metadata(accession_list, value)
-                    download_metadata(metadata, ff, term, out_dir)
-                    logging.info("Metadata has been loaded.")
-                elif op == "r":
-                    # This branch downloads study runs
-                    for i in range(0, len(accession_list)):
-                        if method == "q":
-                            success = handle_run(
-                                    accession=accession_list[i],
-                                    method=method,
-                                    total_spots=total_spots[i]
-                            )
-                        else:
-                            success = handle_run(
-                                    accession=accession_list[i],
-                                    method=method
-                            )
-                        if success:
-                            pass
-                        else:
-                            logging.warning("Do you want to reload it one more time? (y/n)")
-                            answer = input()
-                            if answer == "y":
-                                if method == "q":
-                                    handle_run(
-                                            accession=accession_list[i],
-                                            method=method,
-                                            total_spots=total_spots[i]
-                                    )
-                                else:
-                                    handle_run(
-                                            accession=accession_list[i],
-                                            method=method
-                                    )
-                            else:
-                                pass
-                        logging.info(f"All runs were loaded from {term}.")
+                handle_methods(term, method, out_dir)
+                logging.info("All runs were loaded.")
     except ValueError as e:
         logging.error(e)
         print("Unexpected exit")
@@ -484,6 +373,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("Session was interrupted!")
         exit(0)
-    except:
+    except BaseException as e:
+        logging.error(e)
         print("Something went wrong! Exiting the system!")
         exit(0)

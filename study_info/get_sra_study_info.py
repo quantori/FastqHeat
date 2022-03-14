@@ -219,7 +219,7 @@ def get_run_uid_with_only_list(only_list):
             total_spots.append(int(elem.attrib['total_spots']))
     logging.info('List of runs with only: {}'.format(SRRs))
     return SRRs, total_spots
-print(get_run_uid_with_only_list(["fasgvargvargfs", 'vhlhv l ']))
+
 
 def get_run_uid_with_no_exception(webenv, query_key):
     """
@@ -271,6 +271,22 @@ def get_run_uid_with_no_exception(webenv, query_key):
             total_spots.append(int(elem.attrib['total_spots']))
     logging.info('List of runs: {}'.format(SRRs))
     return SRRs, total_spots
+
+
+def get_run_uid(term):
+    SRRs = []
+    total_spots = []
+    try:
+        url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields=run_accession,read_count&format=json'
+        response = requests.get(url)
+        for i in range(0, len(response.json())):
+            SRRs.append(response.json()[i]['run_accession'])
+            total_spots.append(float(response.json()[i]['read_count']))
+    except json.decoder.JSONDecodeError as e:
+        logging.error(e)
+        exit(0)
+    else:
+        return SRRs, total_spots
 
 
 def get_run_uid_with_total_list(term, method):

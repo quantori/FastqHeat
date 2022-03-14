@@ -139,4 +139,4 @@ def md5_checksum(file, out, md5):
                 md5_hash.update(byte_block)
             return md5_hash.hexdigest() == md5
     except FileNotFoundError:
-        logging.warning(f'{out/file} does not exist')
+        logging.warning(f'{out}/{file} does not exist')
