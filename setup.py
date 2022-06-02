@@ -5,7 +5,7 @@ setup(
     version='0.0.1',
     maintainer="Quantori",
     python_requires=">=3.6",
-    description="",
+    description="Helper for downloading metagenomic data from SRA database",
     packages=find_packages(),
     install_requires=[
         'aiohttp',
