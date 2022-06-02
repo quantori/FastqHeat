@@ -34,18 +34,16 @@ def download_run_fasterq_dump(accession, term, total_spots, out):
     """
     download_bash_command = f"fasterq-dump {accession} -O {out}/{term} -p"
     logging.debug(download_bash_command)
-    logging.info('Try to download {} file'.format(accession))
+    logging.info('Try to download %s file', accession)
     os.system(download_bash_command)
     # check completeness of the file and return boolean
     correctness = check_loaded_run(
-                run_accession=accession,
-                path=f"{out}/{term}",
-                needed_lines_cnt=total_spots
-        )
+        run_accession=accession, path=f"{out}/{term}", needed_lines_cnt=total_spots
+    )
     if correctness:
         logging.info("")
         os.system(f"gzip {term}/{accession}*")
-        logging.info(f"{accession} FASTQ file has been zipped")
+        logging.info("%s FASTQ file has been zipped", accession)
     return correctness
 
 
@@ -78,18 +76,17 @@ def download_run_ftp(accession, term, out):
     md5s = response.json()[0]['fastq_md5'].split(';')
     correctness = []
 
-    for i in range(0, len(ftps)):
-            SRR = ftps[i].split('/')[-1]
-            md5 = md5s[i]
-            bash_command = f"mkdir -p {out}/{term} && curl -L {ftps[i]} -o {out}/{term}/{SRR}"
-            logging.debug(bash_command)
-            logging.info('Try to download {} file'.format(SRR))
-            # execute command in commandline
-            os.system(bash_command)
-            # check completeness of the file and return boolean
-            correctness.append(md5_checksum(SRR, f"{out}/{term}", md5))
+    for ftp, md5 in zip(ftps, md5s):
+        SRR = ftp.split('/')[-1]
+        bash_command = f"mkdir -p {out}/{term} && curl -L {ftp} -o {out}/{term}/{SRR}"
+        logging.debug(bash_command)
+        logging.info('Try to download %s file', SRR)
+        # execute command in commandline
+        os.system(bash_command)
+        # check completeness of the file and return boolean
+        correctness.append(md5_checksum(SRR, f"{out}/{term}", md5))
     if all(correctness):
-            logging.info(f"Current Run: {accession} has been successfully downloaded")
+        logging.info("Current Run: %s has been successfully downloaded", accession)
     return all(correctness)
 
 
@@ -122,16 +119,15 @@ def download_run_aspc(accession, term, out):
     md5s = response.json()[0]['fastq_md5'].split(';')
     correctness = []
 
-    for i in range(0, len(asperas)):
-        SRR = asperas[i].split('/')[-1]
-        md5 = md5s[i]
-        bash_command = f'ascp -QT -l 300m -P33001 -i $HOME/.aspera/cli/etc/asperaweb_id_dsa.openssh era-fasp@{asperas[i]} . && mkdir -p {out}/{term} && mv {SRR} {out}/{term}'
+    for aspera, md5 in zip(asperas, md5s):
+        SRR = aspera.split('/')[-1]
+        bash_command = f'ascp -QT -l 300m -P33001 -i $HOME/.aspera/cli/etc/asperaweb_id_dsa.openssh era-fasp@{aspera} . && mkdir -p {out}/{term} && mv {SRR} {out}/{term}'
         logging.debug(bash_command)
-        logging.info('Try to download {} file'.format(SRR))
+        logging.info('Try to download %s file', SRR)
         # execute command in commandline
         os.system(bash_command)
         # check completeness of the file and return boolean
         correctness.append(md5_checksum(SRR, f"{out}/{term}", md5))
     if all(correctness):
-        logging.info(f"Current Run: {accession} has been successfully downloaded")
+        logging.info("Current Run: %s has been successfully downloaded", accession)
     return all(correctness)

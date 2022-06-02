@@ -1,86 +1,79 @@
 import argparse
 import logging
 import os
-import ssl
 import re
+import ssl
 
 import requests
 import urllib3
 
-from download import (download_run_aspc, download_run_fasterq_dump,
-                      download_run_ftp)
+from download import download_run_aspc, download_run_fasterq_dump, download_run_ftp
 from study_info.get_sra_study_info import get_run_uid
 
 
 def handle_methods(term, method, out):
     SRR_pattern = re.compile(r'^(SRR|ERR|DRR)\d+$')
-    SRP_pattern = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
+    SRP_pattern = re.compile(
+        r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$'
+    )
     if method == "f":
         if SRR_pattern.search(term) is not None:
             accession = term
             success = download_run_ftp(accession, term, out)
-            if success:
-                pass
-            else:
-                logging.warning(f"Failed to download {accession}. Trying once more.")
+            if not success:
+                logging.warning("Failed to download %s. Trying once more.", accession)
                 success = download_run_ftp(accession, term, out)
                 if success:
                     logging.info("The second try was successful!")
-                    pass
                 else:
-                    logging.error(f"Failed the second try. Skipping the {accession}")
-                    pass
+                    logging.error("Failed the second try. Skipping the %s", accession)
+
         elif SRP_pattern.search(term) is not None:
             accession_list, total_spots = get_run_uid(term)
-            for i in range(0, len(accession_list)):
-                accession = accession_list[i]
+            for accession in accession_list:
                 success = download_run_ftp(accession, term, out)
 
-                if success:
-                    pass
-                else:
-                    logging.warning(f"Failed to download {accession}. Trying once more.")
+                if not success:
+                    logging.warning(
+                        "Failed to download %s. Trying once more.", accession
+                    )
                     success = download_run_ftp(accession, term, out)
                     if success:
                         logging.info("The second try was successful!")
-                        pass
                     else:
-                        logging.error(f"Failed the second try. Skipping the {accession}")
-                        pass
+                        logging.error(
+                            "Failed the second try. Skipping the %s", accession
+                        )
 
     if method == "a":
         if SRR_pattern.search(term) is not None:
             accession = term
             success = download_run_aspc(accession, term, out)
 
-            if success:
-                pass
-            else:
-                logging.warning(f"Failed to download {accession}. Trying once more.")
+            if not success:
+                logging.warning("Failed to download %s. Trying once more.", accession)
                 success = download_run_aspc(accession, term, out)
                 if success:
                     logging.info("The second try was successful!")
-                    pass
                 else:
-                    logging.error(f"Failed the second try. Skipping the {accession}")
-                    pass
+                    logging.error("Failed the second try. Skipping the %s", accession)
+
         if SRP_pattern.search(term) is not None:
             accession_list, total_spots = get_run_uid(term)
-            for i in range(0, len(accession_list)):
-                accession = accession_list[i]
+            for accession in accession_list:
                 success = download_run_aspc(accession, term, out)
 
-                if success:
-                    pass
-                else:
-                    logging.warning(f"Failed to download {accession}. Trying once more.")
+                if not success:
+                    logging.warning(
+                        "Failed to download %s. Trying once more.", accession
+                    )
                     success = download_run_aspc(accession, term, out)
                     if success:
                         logging.info("The second try was successful!")
-                        pass
                     else:
-                        logging.error(f"Failed the second try. Skipping the {accession}")
-                        pass
+                        logging.error(
+                            "Failed the second try. Skipping the %s", accession
+                        )
 
     if method == "q":
         if SRR_pattern.search(term) is not None:
@@ -90,36 +83,34 @@ def handle_methods(term, method, out):
             total_spots = int(response.json()[0]['read_count'])
             success = download_run_fasterq_dump(accession, term, total_spots, out)
 
-            if success:
-                pass
-            else:
-                logging.warning(f"Failed to download {accession}. Trying once more.")
+            if not success:
+                logging.warning("Failed to download %s. Trying once more.", accession)
                 success = download_run_fasterq_dump(accession, term, total_spots, out)
                 if success:
                     logging.info("The second try was successful!")
-                    pass
                 else:
-                    logging.error(f"Failed the second try. Skipping the {accession}")
-                    pass
+                    logging.error("Failed the second try. Skipping the %s", accession)
 
         if SRP_pattern.search(term) is not None:
             accession_list, total_spots = get_run_uid(term)
-            for i in range(0, len(accession_list)):
-                accession = accession_list[i]
-                read_count = total_spots[i]
+            for accession, read_count in zip(accession_list, total_spots):
                 success = download_run_fasterq_dump(accession, term, read_count, out)
 
                 if success:
                     pass
                 else:
-                    logging.warning(f"Failed to download {accession}. Trying once more.")
-                    success = download_run_fasterq_dump(accession, term, read_count, out)
+                    logging.warning(
+                        "Failed to download %s. Trying once more.", accession
+                    )
+                    success = download_run_fasterq_dump(
+                        accession, term, read_count, out
+                    )
                     if success:
                         logging.info("The second try was successful!")
-                        pass
                     else:
-                        logging.error(f"Failed the second try. Skipping the {accession}")
-                        pass
+                        logging.error(
+                            "Failed the second try. Skipping the %s", accession
+                        )
 
 
 if __name__ == "__main__":
@@ -166,30 +157,25 @@ if __name__ == "__main__":
     parser.add_argument(
         "term",
         help="The name of SRA Study identifier, looks like SRP... or ERP... or DRP...  or .txt file name which includes multiple SRA Study identifiers",
-        action="store"
     )
     parser.add_argument(
-        "-L", "--log",
-        help="To point logging level (debug, info, warning, error.",
-        action="store",
-        default="info"
+        "-L",
+        "--log",
+        dest="log_level",
+        help="Logging level",
+        choices=["debug", "info", "warning", "error"],
+        default="info",
     )
     # parser.add_argument(
     #     "-N", "--only",
     #     help="The only_list. The list of the certain items to download. To write with ',' and without spaces.",
-    #     action="store"
     # )
+    parser.add_argument("-O", "--out", help="Output directory", default=".")
     parser.add_argument(
-        "-O", "--out",
-        help="Output directory",
-        action="store",
-        default="."
-    )
-    parser.add_argument(
-        "-M", "--method",
+        "-M",
+        "--method",
         help="Choose different type of methods that should be used for data retrieval: Aspera (a), FTP (f), fasterq_dump (q). By default it is fasterq_dump (q)",
-        action="store",
-        default='q'
+        default='q',
     )
     # parser.add_argument(
     #     "-P", "--skip",
@@ -198,14 +184,12 @@ if __name__ == "__main__":
     #     has the biggest priority.\
     #     If one run id has been pointed in skip_list and in only_list, \
     #     this run will be skipped.",
-    #     action="store"
     # )
     # parser.add_argument(
     #     "-E", "--explore",
     #     help="2 options:download runs or download metadata. \
     #     Argument should be followed with i for Metadata and r for Runs.\
     #     By default it will always be set to r to retrieve runs.",
-    #     action="store",
     #     default="r"
     # )
     # parser.add_argument(
@@ -213,7 +197,6 @@ if __name__ == "__main__":
     #     help="File format of downloaded metadata:CSV, JSON on YAML. \
     #     c for CSV, j for JSON and y for YAML.\
     #     By default it will always be set to j.",
-    #     action="store",
     #     default="j"
     # )
     # parser.add_argument(
@@ -221,13 +204,11 @@ if __name__ == "__main__":
     #     help="Column selection from ENA. To write with ',' and without spaces. \
     #     By default it will always be set to this list:\
     #     study_accession,sample_accession,experiment_accession,read_count,base_count",
-    #     action="store",
     #     default="study_accession,sample_accession,experiment_accession,read_count,base_count"
     # )
     # parser.add_argument(
     #     "-S", "--show",
     #     help="To show lxml file in a terminal with all Run data (yes/no).",
-    #     action="store",
     #     default="no"
     # )
 
@@ -277,10 +258,11 @@ if __name__ == "__main__":
         logging.error(e)
         logging.error("SRA Toolkit/Aspera CLI not installed or not pointed in path")
         exit(0)
-    parser.add_argument('--version',
-                        action='version',
-                        version=f'{tool} which use {fd_version} version'
-                        )
+
+    # XXX: add_argument after parse_args
+    parser.add_argument(
+        '--version', action='version', version=f'{tool} which use {fd_version} version'
+    )
 
     # # args for skipping Runs
     # if args.skip:
@@ -317,13 +299,11 @@ if __name__ == "__main__":
 
     if args.term:
         term = args.term
-        terms = []
         if term.endswith('.txt'):
-            with open(f"{out_dir}/{term}", "r") as f:
-                lines = f.readlines()
-                terms = [line.strip() for line in lines]
+            with open(f"{out_dir}/{term}", "r") as file:
+                terms = [line.strip() for line in file]
         elif '.' not in term:
-            pass
+            terms = []
         else:
             logging.error('Use either correct term or only .txt file format.')
             exit(0)
@@ -331,25 +311,12 @@ if __name__ == "__main__":
         logging.error('Use correct term name.')
         exit(0)
 
-    LOGGING_LEVEL = logging.INFO  # log level by default
-    if args.log:
-        log = args.log
-        if log == 'info':
-            LOGGING_LEVEL = logging.INFO
-        if log == 'debug':
-            LOGGING_LEVEL = logging.DEBUG
-        if log == 'warning':
-            LOGGING_LEVEL = logging.WARNING
-        if log == 'error':
-            LOGGING_LEVEL = logging.ERROR
-
     try:
         logging.basicConfig(
-            level=LOGGING_LEVEL,
-            format='[level=%(levelname)s]: %(message)s'
+            level=args.log_level.upper(), format='[level=%(levelname)s]: %(message)s'
         )
 
-        if len(terms) == 0:
+        if not terms:
             handle_methods(term, method, out_dir)
             logging.info("All runs were loaded.")
         else:
@@ -360,15 +327,19 @@ if __name__ == "__main__":
         logging.error(e)
         print("Unexpected exit")
         exit(0)
-    except (requests.exceptions.SSLError,
-            urllib3.exceptions.MaxRetryError,
-            ssl.SSLEOFError) as e:
+    except (
+        requests.exceptions.SSLError,
+        urllib3.exceptions.MaxRetryError,
+        ssl.SSLEOFError,
+    ) as e:
         logging.error(e)
         print("Too many requests were made. Exiting system.")
         exit(0)
     except requests.exceptions.ConnectionError as e:
         logging.error(e)
-        print("Incorrect parameter(s) was/were provided to tool. Try again with correct ones from ENA.")
+        print(
+            "Incorrect parameter(s) was/were provided to tool. Try again with correct ones from ENA."
+        )
         exit(0)
     except KeyboardInterrupt:
         print("Session was interrupted!")
