@@ -10,14 +10,15 @@ import urllib3
 from download import download_run_aspc, download_run_fasterq_dump, download_run_ftp
 from study_info.get_sra_study_info import get_run_uid
 
+SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
+SRP_PATTERN = re.compile(
+    r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$'
+)
+
 
 def handle_methods(term, method, out):
-    SRR_pattern = re.compile(r'^(SRR|ERR|DRR)\d+$')
-    SRP_pattern = re.compile(
-        r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$'
-    )
     if method == "f":
-        if SRR_pattern.search(term) is not None:
+        if SRR_PATTERN.search(term) is not None:
             accession = term
             success = download_run_ftp(accession, term, out)
 
@@ -29,15 +30,13 @@ def handle_methods(term, method, out):
                 else:
                     logging.error("Failed the second try. Skipping the %s", accession)
 
-        elif SRP_pattern.search(term) is not None:
+        elif SRP_PATTERN.search(term) is not None:
             accession_list, total_spots = get_run_uid(term)
-            for i in range(0, len(accession_list)):
-                accession = accession_list[i]
+
+            for accession in accession_list:
                 success = download_run_ftp(accession, term, out)
 
-                if success:
-                    pass
-                else:
+                if not success:
                     logging.warning(
                         "Failed to download %s. Trying once more.", accession
                     )
@@ -49,8 +48,8 @@ def handle_methods(term, method, out):
                             "Failed the second try. Skipping the %s", accession
                         )
 
-    if method == "a":
-        if SRR_pattern.search(term) is not None:
+    elif method == "a":
+        if SRR_PATTERN.search(term) is not None:
             accession = term
             success = download_run_aspc(accession, term, out)
 
@@ -62,10 +61,10 @@ def handle_methods(term, method, out):
                 else:
                     logging.error("Failed the second try. Skipping the %s", accession)
 
-        if SRP_pattern.search(term) is not None:
+        if SRP_PATTERN.search(term) is not None:
             accession_list, total_spots = get_run_uid(term)
-            for i in range(0, len(accession_list)):
-                accession = accession_list[i]
+
+            for accession in accession_list:
                 success = download_run_aspc(accession, term, out)
 
                 if not success:
@@ -80,8 +79,8 @@ def handle_methods(term, method, out):
                             "Failed the second try. Skipping the %s", accession
                         )
 
-    if method == "q":
-        if SRR_pattern.search(term) is not None:
+    elif method == "q":
+        if SRR_PATTERN.search(term) is not None:
             accession = term
             bash_command = f"https://www.ebi.ac.uk/ena/portal/api/filereport?accession={accession}&result=read_run&fields=read_count&format=json"
             response = requests.get(bash_command)
@@ -96,11 +95,10 @@ def handle_methods(term, method, out):
                 else:
                     logging.error("Failed the second try. Skipping the %s", accession)
 
-        if SRP_pattern.search(term) is not None:
+        if SRP_PATTERN.search(term) is not None:
             accession_list, total_spots = get_run_uid(term)
-            for i in range(0, len(accession_list)):
-                accession = accession_list[i]
-                read_count = total_spots[i]
+
+            for accession, read_count in zip(accession_list, total_spots):
                 success = download_run_fasterq_dump(accession, term, read_count, out)
 
                 if not success:
