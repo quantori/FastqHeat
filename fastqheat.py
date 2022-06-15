@@ -20,17 +20,15 @@ def handle_methods(term, method, out):
         if SRR_pattern.search(term) is not None:
             accession = term
             success = download_run_ftp(accession, term, out)
-            if success:
-                pass
-            else:
+
+            if not success:
                 logging.warning("Failed to download %s. Trying once more.", accession)
                 success = download_run_ftp(accession, term, out)
                 if success:
                     logging.info("The second try was successful!")
-                    pass
                 else:
                     logging.error("Failed the second try. Skipping the %s", accession)
-                    pass
+
         elif SRP_pattern.search(term) is not None:
             accession_list, total_spots = get_run_uid(term)
             for i in range(0, len(accession_list)):
@@ -46,50 +44,41 @@ def handle_methods(term, method, out):
                     success = download_run_ftp(accession, term, out)
                     if success:
                         logging.info("The second try was successful!")
-                        pass
                     else:
                         logging.error(
                             "Failed the second try. Skipping the %s", accession
                         )
-                        pass
 
     if method == "a":
         if SRR_pattern.search(term) is not None:
             accession = term
             success = download_run_aspc(accession, term, out)
 
-            if success:
-                pass
-            else:
+            if not success:
                 logging.warning("Failed to download %s. Trying once more.", accession)
                 success = download_run_aspc(accession, term, out)
                 if success:
                     logging.info("The second try was successful!")
-                    pass
                 else:
                     logging.error("Failed the second try. Skipping the %s", accession)
-                    pass
+
         if SRP_pattern.search(term) is not None:
             accession_list, total_spots = get_run_uid(term)
             for i in range(0, len(accession_list)):
                 accession = accession_list[i]
                 success = download_run_aspc(accession, term, out)
 
-                if success:
-                    pass
-                else:
+                if not success:
                     logging.warning(
                         "Failed to download %s. Trying once more.", accession
                     )
                     success = download_run_aspc(accession, term, out)
                     if success:
                         logging.info("The second try was successful!")
-                        pass
                     else:
                         logging.error(
                             "Failed the second try. Skipping the %s", accession
                         )
-                        pass
 
     if method == "q":
         if SRR_pattern.search(term) is not None:
@@ -99,17 +88,13 @@ def handle_methods(term, method, out):
             total_spots = int(response.json()[0]['read_count'])
             success = download_run_fasterq_dump(accession, term, total_spots, out)
 
-            if success:
-                pass
-            else:
+            if not success:
                 logging.warning("Failed to download %s. Trying once more.", accession)
                 success = download_run_fasterq_dump(accession, term, total_spots, out)
                 if success:
                     logging.info("The second try was successful!")
-                    pass
                 else:
                     logging.error("Failed the second try. Skipping the %s", accession)
-                    pass
 
         if SRP_pattern.search(term) is not None:
             accession_list, total_spots = get_run_uid(term)
@@ -118,9 +103,7 @@ def handle_methods(term, method, out):
                 read_count = total_spots[i]
                 success = download_run_fasterq_dump(accession, term, read_count, out)
 
-                if success:
-                    pass
-                else:
+                if not success:
                     logging.warning(
                         "Failed to download %s. Trying once more.", accession
                     )
@@ -129,12 +112,10 @@ def handle_methods(term, method, out):
                     )
                     if success:
                         logging.info("The second try was successful!")
-                        pass
                     else:
                         logging.error(
                             "Failed the second try. Skipping the %s", accession
                         )
-                        pass
 
 
 if __name__ == "__main__":
@@ -238,13 +219,11 @@ if __name__ == "__main__":
 
     if args.term:
         term = args.term
-        terms = []
         if term.endswith('.txt'):
-            with open(f"{out_dir}/{term}", "r") as f:
-                lines = f.readlines()
-                terms = [line.strip() for line in lines]
+            with open(f"{out_dir}/{term}", "r") as file:
+                terms = [line.strip() for line in file]
         elif '.' not in term:
-            pass
+            terms = []
         else:
             logging.error('Use either correct term or only .txt file format.')
             exit(0)
@@ -257,7 +236,7 @@ if __name__ == "__main__":
             level=args.log_level.upper(), format='[level=%(levelname)s]: %(message)s'
         )
 
-        if len(terms) == 0:
+        if not terms:
             handle_methods(term, method, out_dir)
             logging.info("All runs were loaded.")
         else:

@@ -277,9 +277,10 @@ def get_run_uid(term):
     try:
         url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields=run_accession,read_count&format=json'
         response = requests.get(url)
-        for i in range(0, len(response.json())):
-            SRRs.append(response.json()[i]['run_accession'])
-            total_spots.append(float(response.json()[i]['read_count']))
+        response_data = response.json()
+        for data in response_data:
+            SRRs.append(data['run_accession'])
+            total_spots.append(float(data['read_count']))
     except json.decoder.JSONDecodeError as e:
         logging.error(e)
         exit(0)
@@ -312,15 +313,15 @@ def get_run_uid_with_total_list(term, method):
     if method == 'q':
         url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields=run_accession,read_count&format=json'
         response = requests.get(url)
-        for i in range(0, len(response.json())):
-            SRRs.append(response.json()[i]['run_accession'])
-            total_spots.append(int(response.json()[i]['read_count']))
+        response_data = response.json()
+        for data in response_data:
+            SRRs.append(data['run_accession'])
+            total_spots.append(int(data['read_count']))
     else:
         url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields=run_accession&format=json'
         response = requests.get(url)
-        SRRs = [
-            response.json()[i]['run_accession'] for i in range(0, len(response.json()))
-        ]
+        SRRs = [x['run_accession'] for x in response.json()]
+
     logging.info('List of total runs: %s', SRRs)
     return SRRs, total_spots
 
@@ -349,23 +350,25 @@ def get_run_uid_with_skipped_list(term, skip_list, method):
 
     SRRs = []
     total_spots = []
+    skip_set = frozenset(skip_list)
+
     if method == 'q':
         url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields=run_accession,read_count&format=json'
         response = requests.get(url)
-        for i in range(0, len(response.json())):
-            if response.json()[i]['run_accession'] not in set(skip_list):
-                SRRs.append(response.json()[i]['run_accession'])
-                total_spots.append(response.json()[i]['read_count'])
+        response_data = response.json()
+        for data in response_data:
+            if data['run_accession'] not in skip_set:
+                SRRs.append(data['run_accession'])
+                total_spots.append(data['read_count'])
+
         logging.debug('Skip list: %s', skip_list)
         logging.info('List of runs without skipped: %s', SRRs)
     else:
         url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields=run_accession&format=json'
         response = requests.get(url)
-        SRRs = [
-            response.json()[i]['run_accession'] for i in range(0, len(response.json()))
-        ]
+        SRRs = [data['run_accession'] for data in response.json()]
         logging.debug('Total list: %s', SRRs)
-        SRRs = list(set(SRRs) - set(skip_list))
+        SRRs = list(set(SRRs) - skip_set)
         logging.debug('Skip list: %s', skip_list)
         logging.info('List of runs without skipped: %s', SRRs)
 
