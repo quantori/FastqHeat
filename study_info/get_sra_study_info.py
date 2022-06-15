@@ -37,7 +37,7 @@ def get_webenv_and_query_key_with_total_list(term):
                 'db': DB,
                 'term': term,
                 'usehistory': 'y',
-            }
+            },
         )
     else:
         response = requests.get(
@@ -47,7 +47,7 @@ def get_webenv_and_query_key_with_total_list(term):
                 'term': term,
                 'usehistory': 'y',
                 'api_key': os.environ.get('API_KEY'),
-            }
+            },
         )
     logging.info(response)
     root = ElementTree.fromstring(response.text)
@@ -66,7 +66,7 @@ def get_webenv_and_query_key_with_total_list(term):
 def get_webenv_and_query_key_with_skipped_list(term, skip_list):
     """
     Get Webenv and query key from Esearch to communicate results to Efetch
-    about the list of Run Accessions without skipped list from the given 
+    about the list of Run Accessions without skipped list from the given
     Study/Sample/Experiment/Submission Accession
 
     Parameters
@@ -89,7 +89,7 @@ def get_webenv_and_query_key_with_skipped_list(term, skip_list):
                 'db': DB,
                 'term': skip,
                 'usehistory': 'y',
-            }
+            },
         )
     else:
         response = requests.get(
@@ -99,7 +99,7 @@ def get_webenv_and_query_key_with_skipped_list(term, skip_list):
                 'term': skip,
                 'usehistory': 'y',
                 'api_key': os.environ.get('API_KEY'),
-            }
+            },
         )
     logging.info(response)
     root = ElementTree.fromstring(response.text)
@@ -151,14 +151,12 @@ async def get_total_spot(session, accession):
 
 def get_total_spots_with_only_list(only_list):
     try:
+
         async def main():
             async with aiohttp.ClientSession() as session:
                 tasks = []
                 for accession in only_list:
-                    task = asyncio.ensure_future(get_total_spot(
-                                                session,
-                                                accession)
-                                                )
+                    task = asyncio.ensure_future(get_total_spot(session, accession))
                     tasks.append(task)
 
                 total_spots = await asyncio.gather(*tasks)
@@ -198,7 +196,7 @@ def get_run_uid_with_only_list(only_list):
             params={
                 'db': DB,
                 'id': ','.join(only_list),
-            }
+            },
         )
     else:
         response = requests.get(
@@ -207,7 +205,7 @@ def get_run_uid_with_only_list(only_list):
                 'db': DB,
                 'id': ','.join(only_list),
                 'api_key': os.environ.get('API_KEY'),
-            }
+            },
         )
     logging.debug(response.text)
     show_tree(response)
@@ -249,7 +247,7 @@ def get_run_uid_with_no_exception(webenv, query_key):
                 'db': DB,
                 'Webenv': webenv,
                 'query_key': query_key,
-            }
+            },
         )
     else:
         response = requests.get(
@@ -259,7 +257,7 @@ def get_run_uid_with_no_exception(webenv, query_key):
                 'Webenv': webenv,
                 'query_key': query_key,
                 'api_key': os.environ.get('API_KEY'),
-            }
+            },
         )
     logging.debug(response.text)
     show_tree(response)
@@ -320,8 +318,9 @@ def get_run_uid_with_total_list(term, method):
     else:
         url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields=run_accession&format=json'
         response = requests.get(url)
-        SRRs = [response.json()[i]['run_accession']
-                for i in range(0, len(response.json()))]
+        SRRs = [
+            response.json()[i]['run_accession'] for i in range(0, len(response.json()))
+        ]
     logging.info('List of total runs: {}'.format(SRRs))
     return SRRs, total_spots
 
@@ -362,8 +361,9 @@ def get_run_uid_with_skipped_list(term, skip_list, method):
     else:
         url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields=run_accession&format=json'
         response = requests.get(url)
-        SRRs = [response.json()[i]['run_accession']
-                for i in range(0, len(response.json()))]
+        SRRs = [
+            response.json()[i]['run_accession'] for i in range(0, len(response.json()))
+        ]
         logging.debug('Total list: {}'.format(SRRs))
         SRRs = list(set(SRRs) - set(skip_list))
         logging.debug('Skip list: {}'.format(skip_list))
@@ -377,24 +377,25 @@ async def get_accession_metadata(session, accession, value):
 
     async with session.get(url) as response:
         result_data = await response.json()
-        result_data, = result_data
+        (result_data,) = result_data
         return result_data
 
 
 def get_full_metadata(accession_list, value):
     try:
+
         async def main():
             async with aiohttp.ClientSession() as session:
                 tasks = []
                 for accession in accession_list:
-                    task = asyncio.ensure_future(get_accession_metadata(
-                                                                        session,
-                                                                        accession,
-                                                                        value))
+                    task = asyncio.ensure_future(
+                        get_accession_metadata(session, accession, value)
+                    )
                     tasks.append(task)
 
                 metadata = await asyncio.gather(*tasks)
                 return metadata
+
         x = asyncio.run(main())
         return x
     except TypeError as e:
