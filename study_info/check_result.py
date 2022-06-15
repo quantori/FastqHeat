@@ -31,7 +31,7 @@ def get_info_about_all_loaded_lines(run_accession, path="."):
 
     rate = None
     if cnt_entries == 0:
-        logging.error('The {} fastq file is empty or not exists'.format(run_accession))
+        logging.error('The %s fastq file is empty or not exists', run_accession)
         exit(0)
     elif cnt_entries == 1:
         logging.debug(
@@ -45,7 +45,7 @@ def get_info_about_all_loaded_lines(run_accession, path="."):
 
     # get last entry and its value
     all_lines = entries[cnt_entries - 1].strip().split(' ')[0]
-    logging.debug('All lines in all files of this run: {}'.format(all_lines))
+    logging.debug('All lines in all files of this run: %s', all_lines)
 
     return rate, int(all_lines)
 
@@ -72,7 +72,7 @@ def get_cnt_of_coding_loaded_lines(run_accession, path="."):
 
     # 4 - fixed because of a fastq file content
     cnt = (total / rate) / 4
-    logging.debug('{} coding lines have been downloaded'.format(cnt))
+    logging.debug('%d coding lines have been downloaded', cnt)
 
     return cnt
 
@@ -98,16 +98,16 @@ def check_loaded_run(run_accession, path=".", needed_lines_cnt=1):
 
     if cnt_loaded == needed_lines_cnt:
         logging.info(
-            'Current Run: {} with {} total spots has been successfully downloaded'.format(
-                run_accession, needed_lines_cnt
-            )
+            'Current Run: %s with %d total spots has been successfully downloaded',
+            run_accession,
+            needed_lines_cnt,
         )
         return True
     else:
         logging.warning(
-            'Loaded {} lines, but described {} lines. File has been downloaded INCORRECTLY'.format(
-                cnt_loaded, needed_lines_cnt
-            )
+            'Loaded %s lines, but described %d lines. File has been downloaded INCORRECTLY',
+            cnt_loaded,
+            needed_lines_cnt,
         )
         return False
 

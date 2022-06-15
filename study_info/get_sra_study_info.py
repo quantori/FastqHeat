@@ -215,7 +215,7 @@ def get_run_uid_with_only_list(only_list):
             logging.debug(elem.attrib)
             SRRs.append(elem.attrib['accession'])
             total_spots.append(int(elem.attrib['total_spots']))
-    logging.info('List of runs with only: {}'.format(SRRs))
+    logging.info('List of runs with only: %s', SRRs)
     return SRRs, total_spots
 
 
@@ -267,7 +267,7 @@ def get_run_uid_with_no_exception(webenv, query_key):
             logging.debug(elem.attrib)
             SRRs.append(elem.attrib['accession'])
             total_spots.append(int(elem.attrib['total_spots']))
-    logging.info('List of runs: {}'.format(SRRs))
+    logging.info('List of runs: %s', SRRs)
     return SRRs, total_spots
 
 
@@ -321,7 +321,7 @@ def get_run_uid_with_total_list(term, method):
         SRRs = [
             response.json()[i]['run_accession'] for i in range(0, len(response.json()))
         ]
-    logging.info('List of total runs: {}'.format(SRRs))
+    logging.info('List of total runs: %s', SRRs)
     return SRRs, total_spots
 
 
@@ -356,18 +356,18 @@ def get_run_uid_with_skipped_list(term, skip_list, method):
             if response.json()[i]['run_accession'] not in set(skip_list):
                 SRRs.append(response.json()[i]['run_accession'])
                 total_spots.append(response.json()[i]['read_count'])
-        logging.debug('Skip list: {}'.format(skip_list))
-        logging.info('List of runs without skipped: {}'.format(SRRs))
+        logging.debug('Skip list: %s', skip_list)
+        logging.info('List of runs without skipped: %s', SRRs)
     else:
         url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields=run_accession&format=json'
         response = requests.get(url)
         SRRs = [
             response.json()[i]['run_accession'] for i in range(0, len(response.json()))
         ]
-        logging.debug('Total list: {}'.format(SRRs))
+        logging.debug('Total list: %s', SRRs)
         SRRs = list(set(SRRs) - set(skip_list))
-        logging.debug('Skip list: {}'.format(skip_list))
-        logging.info('List of runs without skipped: {}'.format(SRRs))
+        logging.debug('Skip list: %s', skip_list)
+        logging.info('List of runs without skipped: %s', SRRs)
 
     return SRRs, total_spots
 

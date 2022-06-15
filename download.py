@@ -34,7 +34,7 @@ def download_run_fasterq_dump(accession, term, total_spots, out):
     """
     download_bash_command = f"fasterq-dump {accession} -O {out}/{term} -p"
     logging.debug(download_bash_command)
-    logging.info('Try to download {} file'.format(accession))
+    logging.info('Try to download %s file', accession)
     os.system(download_bash_command)
     # check completeness of the file and return boolean
     correctness = check_loaded_run(
@@ -43,7 +43,7 @@ def download_run_fasterq_dump(accession, term, total_spots, out):
     if correctness:
         logging.info("")
         os.system(f"gzip {term}/{accession}*")
-        logging.info(f"{accession} FASTQ file has been zipped")
+        logging.info("%s FASTQ file has been zipped", accession)
     return correctness
 
 
@@ -83,13 +83,13 @@ def download_run_ftp(accession, term, out):
             f"mkdir -p {out}/{term} && curl -L {ftps[i]} -o {out}/{term}/{SRR}"
         )
         logging.debug(bash_command)
-        logging.info('Try to download {} file'.format(SRR))
+        logging.info('Try to download %s file', SRR)
         # execute command in commandline
         os.system(bash_command)
         # check completeness of the file and return boolean
         correctness.append(md5_checksum(SRR, f"{out}/{term}", md5))
     if all(correctness):
-        logging.info(f"Current Run: {accession} has been successfully downloaded")
+        logging.info("Current Run: %s has been successfully downloaded", accession)
     return all(correctness)
 
 
@@ -127,11 +127,14 @@ def download_run_aspc(accession, term, out):
         md5 = md5s[i]
         bash_command = f'ascp -QT -l 300m -P33001 -i $HOME/.aspera/cli/etc/asperaweb_id_dsa.openssh era-fasp@{asperas[i]} . && mkdir -p {out}/{term} && mv {SRR} {out}/{term}'
         logging.debug(bash_command)
-        logging.info('Try to download {} file'.format(SRR))
+        logging.info('Try to download %s file', SRR)
         # execute command in commandline
         os.system(bash_command)
         # check completeness of the file and return boolean
         correctness.append(md5_checksum(SRR, f"{out}/{term}", md5))
+
     if all(correctness):
-        logging.info(f"Current Run: {accession} has been successfully downloaded")
-    return all(correctness)
+        logging.info("Current Run: %s has been successfully downloaded", accession)
+        return True
+    else:
+        return False

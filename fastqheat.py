@@ -23,13 +23,13 @@ def handle_methods(term, method, out):
             if success:
                 pass
             else:
-                logging.warning(f"Failed to download {accession}. Trying once more.")
+                logging.warning("Failed to download %s. Trying once more.", accession)
                 success = download_run_ftp(accession, term, out)
                 if success:
                     logging.info("The second try was successful!")
                     pass
                 else:
-                    logging.error(f"Failed the second try. Skipping the {accession}")
+                    logging.error("Failed the second try. Skipping the %s", accession)
                     pass
         elif SRP_pattern.search(term) is not None:
             accession_list, total_spots = get_run_uid(term)
@@ -41,7 +41,7 @@ def handle_methods(term, method, out):
                     pass
                 else:
                     logging.warning(
-                        f"Failed to download {accession}. Trying once more."
+                        "Failed to download %s. Trying once more.", accession
                     )
                     success = download_run_ftp(accession, term, out)
                     if success:
@@ -49,7 +49,7 @@ def handle_methods(term, method, out):
                         pass
                     else:
                         logging.error(
-                            f"Failed the second try. Skipping the {accession}"
+                            "Failed the second try. Skipping the %s", accession
                         )
                         pass
 
@@ -61,13 +61,13 @@ def handle_methods(term, method, out):
             if success:
                 pass
             else:
-                logging.warning(f"Failed to download {accession}. Trying once more.")
+                logging.warning("Failed to download %s. Trying once more.", accession)
                 success = download_run_aspc(accession, term, out)
                 if success:
                     logging.info("The second try was successful!")
                     pass
                 else:
-                    logging.error(f"Failed the second try. Skipping the {accession}")
+                    logging.error("Failed the second try. Skipping the %s", accession)
                     pass
         if SRP_pattern.search(term) is not None:
             accession_list, total_spots = get_run_uid(term)
@@ -79,7 +79,7 @@ def handle_methods(term, method, out):
                     pass
                 else:
                     logging.warning(
-                        f"Failed to download {accession}. Trying once more."
+                        "Failed to download %s. Trying once more.", accession
                     )
                     success = download_run_aspc(accession, term, out)
                     if success:
@@ -87,7 +87,7 @@ def handle_methods(term, method, out):
                         pass
                     else:
                         logging.error(
-                            f"Failed the second try. Skipping the {accession}"
+                            "Failed the second try. Skipping the %s", accession
                         )
                         pass
 
@@ -102,13 +102,13 @@ def handle_methods(term, method, out):
             if success:
                 pass
             else:
-                logging.warning(f"Failed to download {accession}. Trying once more.")
+                logging.warning("Failed to download %s. Trying once more.", accession)
                 success = download_run_fasterq_dump(accession, term, total_spots, out)
                 if success:
                     logging.info("The second try was successful!")
                     pass
                 else:
-                    logging.error(f"Failed the second try. Skipping the {accession}")
+                    logging.error("Failed the second try. Skipping the %s", accession)
                     pass
 
         if SRP_pattern.search(term) is not None:
@@ -122,7 +122,7 @@ def handle_methods(term, method, out):
                     pass
                 else:
                     logging.warning(
-                        f"Failed to download {accession}. Trying once more."
+                        "Failed to download %s. Trying once more.", accession
                     )
                     success = download_run_fasterq_dump(
                         accession, term, read_count, out
@@ -132,7 +132,7 @@ def handle_methods(term, method, out):
                         pass
                     else:
                         logging.error(
-                            f"Failed the second try. Skipping the {accession}"
+                            "Failed the second try. Skipping the %s", accession
                         )
                         pass
 
