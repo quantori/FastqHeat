@@ -162,7 +162,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "term",
         help="The name of SRA Study identifier, looks like SRP... or ERP... or DRP...  or .txt file name which includes multiple SRA Study identifiers",
-        action="store",
     )
     parser.add_argument(
         "-L",
@@ -172,14 +171,11 @@ if __name__ == "__main__":
         choices=["debug", "info", "warning", "error"],
         default="info",
     )
-    parser.add_argument(
-        "-O", "--out", help="Output directory", action="store", default="."
-    )
+    parser.add_argument("-O", "--out", help="Output directory", default=".")
     parser.add_argument(
         "-M",
         "--method",
         help="Choose different type of methods that should be used for data retrieval: Aspera (a), FTP (f), fasterq_dump (q). By default it is fasterq_dump (q)",
-        action="store",
         default='q',
     )
     args = parser.parse_args()
