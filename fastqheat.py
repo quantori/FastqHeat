@@ -186,8 +186,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "-L",
         "--log",
-        help="To point logging level (debug, info, warning, error.",
-        action="store",
+        dest="log_level",
+        help="Logging level",
+        choices=["debug", "info", "warning", "error"],
         default="info",
     )
     # parser.add_argument(
@@ -344,21 +345,9 @@ if __name__ == "__main__":
         logging.error('Use correct term name.')
         exit(0)
 
-    LOGGING_LEVEL = logging.INFO  # log level by default
-    if args.log:
-        log = args.log
-        if log == 'info':
-            LOGGING_LEVEL = logging.INFO
-        if log == 'debug':
-            LOGGING_LEVEL = logging.DEBUG
-        if log == 'warning':
-            LOGGING_LEVEL = logging.WARNING
-        if log == 'error':
-            LOGGING_LEVEL = logging.ERROR
-
     try:
         logging.basicConfig(
-            level=LOGGING_LEVEL, format='[level=%(levelname)s]: %(message)s'
+            level=args.log_level.upper(), format='[level=%(levelname)s]: %(message)s'
         )
 
         if len(terms) == 0:
