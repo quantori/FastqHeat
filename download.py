@@ -90,8 +90,7 @@ def download_run_ftp(accession, term, out):
     if all(correctness):
         logging.info("Current Run: %s has been successfully downloaded", accession)
         return True
-    else:
-        return False
+    return False
 
 
 def download_run_aspc(accession, term, out):
@@ -136,5 +135,4 @@ def download_run_aspc(accession, term, out):
     if all(correctness):
         logging.info("Current Run: %s has been successfully downloaded", accession)
         return True
-    else:
-        return False
+    return False
