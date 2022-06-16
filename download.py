@@ -177,7 +177,7 @@ def _handle_f_method(term, out):
                 logging.error("Failed the second try. Skipping the %s", accession)
 
     elif SRP_PATTERN.search(term):
-        accession_list, total_spots = get_run_uid(term)
+        accession_list, _ = get_run_uid(term)
 
         for accession in accession_list:
             success = download_run_ftp(accession, term, out)
@@ -205,7 +205,7 @@ def _handle_a_method(term, out):
                 logging.error("Failed the second try. Skipping the %s", accession)
 
     if SRP_PATTERN.search(term):
-        accession_list, total_spots = get_run_uid(term)
+        accession_list, _ = get_run_uid(term)
 
         for accession in accession_list:
             success = download_run_aspc(accession, term, out)
