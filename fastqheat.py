@@ -17,7 +17,7 @@ SRP_PATTERN = re.compile(
 
 
 def _handle_f_method(term, out):
-    if SRR_PATTERN.search(term) is not None:
+    if SRR_PATTERN.search(term):
         accession = term
         success = download_run_ftp(accession, term, out)
 
@@ -29,7 +29,7 @@ def _handle_f_method(term, out):
             else:
                 logging.error("Failed the second try. Skipping the %s", accession)
 
-    elif SRP_PATTERN.search(term) is not None:
+    elif SRP_PATTERN.search(term):
         accession_list, total_spots = get_run_uid(term)
 
         for accession in accession_list:
@@ -45,7 +45,7 @@ def _handle_f_method(term, out):
 
 
 def _handle_a_method(term, out):
-    if SRR_PATTERN.search(term) is not None:
+    if SRR_PATTERN.search(term):
         accession = term
         success = download_run_aspc(accession, term, out)
 
@@ -57,7 +57,7 @@ def _handle_a_method(term, out):
             else:
                 logging.error("Failed the second try. Skipping the %s", accession)
 
-    if SRP_PATTERN.search(term) is not None:
+    if SRP_PATTERN.search(term):
         accession_list, total_spots = get_run_uid(term)
 
         for accession in accession_list:
@@ -73,7 +73,7 @@ def _handle_a_method(term, out):
 
 
 def _handle_q_method(term, out):
-    if SRR_PATTERN.search(term) is not None:
+    if SRR_PATTERN.search(term):
         accession = term
         bash_command = f"https://www.ebi.ac.uk/ena/portal/api/filereport?accession={accession}&result=read_run&fields=read_count&format=json"
         response = requests.get(bash_command)
@@ -88,7 +88,7 @@ def _handle_q_method(term, out):
             else:
                 logging.error("Failed the second try. Skipping the %s", accession)
 
-    if SRP_PATTERN.search(term) is not None:
+    if SRP_PATTERN.search(term):
         accession_list, total_spots = get_run_uid(term)
 
         for accession, read_count in zip(accession_list, total_spots):
