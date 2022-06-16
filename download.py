@@ -38,10 +38,8 @@ def download_run_fasterq_dump(accession, term, total_spots, out):
     os.system(download_bash_command)
     # check completeness of the file and return boolean
     correctness = check_loaded_run(
-                run_accession=accession,
-                path=f"{out}/{term}",
-                needed_lines_cnt=total_spots
-        )
+        run_accession=accession, path=f"{out}/{term}", needed_lines_cnt=total_spots
+    )
     if correctness:
         logging.info("")
         os.system(f"gzip {term}/{accession}*")
@@ -79,17 +77,17 @@ def download_run_ftp(accession, term, out):
     correctness = []
 
     for i in range(0, len(ftps)):
-            SRR = ftps[i].split('/')[-1]
-            md5 = md5s[i]
-            bash_command = f"mkdir -p {out}/{term} && curl -L {ftps[i]} -o {out}/{term}/{SRR}"
-            logging.debug(bash_command)
-            logging.info('Try to download {} file'.format(SRR))
-            # execute command in commandline
-            os.system(bash_command)
-            # check completeness of the file and return boolean
-            correctness.append(md5_checksum(SRR, f"{out}/{term}", md5))
+        SRR = ftps[i].split('/')[-1]
+        md5 = md5s[i]
+        bash_command = f"mkdir -p {out}/{term} && curl -L {ftps[i]} -o {out}/{term}/{SRR}"
+        logging.debug(bash_command)
+        logging.info('Try to download {} file'.format(SRR))
+        # execute command in commandline
+        os.system(bash_command)
+        # check completeness of the file and return boolean
+        correctness.append(md5_checksum(SRR, f"{out}/{term}", md5))
     if all(correctness):
-            logging.info(f"Current Run: {accession} has been successfully downloaded")
+        logging.info(f"Current Run: {accession} has been successfully downloaded")
     return all(correctness)
 
 

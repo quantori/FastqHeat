@@ -2,16 +2,18 @@ import logging
 import os
 
 import requests
-
 from check_result import check_loaded_run, md5_checksum
-from get_sra_study_info import (download_metadata, get_full_metadata,
-                                get_run_uid_with_no_exception,
-                                get_run_uid_with_only_list,
-                                get_run_uid_with_skipped_list,
-                                get_run_uid_with_total_list,
-                                get_total_spots_with_only_list,
-                                get_webenv_and_query_key_with_skipped_list,
-                                get_webenv_and_query_key_with_total_list)
+from get_sra_study_info import (
+    download_metadata,
+    get_full_metadata,
+    get_run_uid_with_no_exception,
+    get_run_uid_with_only_list,
+    get_run_uid_with_skipped_list,
+    get_run_uid_with_total_list,
+    get_total_spots_with_only_list,
+    get_webenv_and_query_key_with_skipped_list,
+    get_webenv_and_query_key_with_total_list,
+)
 
 
 def handle_run(accession, accession_list, term, terms, method, out_dir, total_spots=1):
@@ -31,47 +33,42 @@ def handle_run(accession, accession_list, term, terms, method, out_dir, total_sp
     try:
         if accession in accession_list:
             if method == 'f':
-                if(download_run_ftp(term=term, terms=terms,
-                                    run=accession, out=out_dir)):
+                if download_run_ftp(term=term, terms=terms, run=accession, out=out_dir):
                     logging.info('A try was finished.')
-                    logging.info("Run {} was correctly downloaded".format(
-                        accession))
+                    logging.info("Run {} was correctly downloaded".format(accession))
                     return True
                 else:
-                    logging.warning("Run {} was loaded incorrectly!".format(
-                        accession))
+                    logging.warning("Run {} was loaded incorrectly!".format(accession))
                     return False
             elif method == 'q':
-                if(download_run_fasterq_dump(term=term, terms=terms,
-                                             run=accession, out=out_dir,
-                                             total_spots=float(total_spots))):
+                if download_run_fasterq_dump(
+                    term=term,
+                    terms=terms,
+                    run=accession,
+                    out=out_dir,
+                    total_spots=float(total_spots),
+                ):
                     logging.info('A try was finished.')
-                    logging.info("Run {} was correctly downloaded".format(
-                        accession))
+                    logging.info("Run {} was correctly downloaded".format(accession))
                     return True
                 else:
-                    logging.warning("Run {} was loaded incorrectly!".format(
-                        accession))
+                    logging.warning("Run {} was loaded incorrectly!".format(accession))
                     return False
             elif method == 'a':
-                if(download_run_aspc(term=term, terms=terms,
-                                     run=accession, out=out_dir)):
+                if download_run_aspc(term=term, terms=terms, run=accession, out=out_dir):
                     logging.info('A try was finished.')
-                    logging.info("Run {} was correctly downloaded".format(
-                        accession))
+                    logging.info("Run {} was correctly downloaded".format(accession))
                     return True
                 else:
-                    logging.warning("Run {} was loaded incorrectly!".format(
-                        accession))
+                    logging.warning("Run {} was loaded incorrectly!".format(accession))
                     return False
     except BaseException as e:
         logging.error(e)
-        logging.debug("Accession {} not in the accession_list".format(
-                accession))
+        logging.debug("Accession {} not in the accession_list".format(accession))
         return True
 
 
-def fastqheat(term, terms, show, only_list, skip_list, ff, value,  out_dir, method, op):
+def fastqheat(term, terms, show, only_list, skip_list, ff, value, out_dir, method, op):
     """
     This script help to download metagenomic data (in fastq/fastq.gz format) as well as metadata (in CSV/JSON/YAML format).
 
@@ -118,9 +115,9 @@ def fastqheat(term, terms, show, only_list, skip_list, ff, value,  out_dir, meth
         -S, --show            show lxml file with all Run data (yes/no)
 
     Template of query:
-            fastqheat.py {SRA Study identifier name SRP...} --skip_list {run id SRR...} --show yes 
-            
-            fastqheat.py {SRA Study identifier name SRP...} --only_list {run id SRR...} 
+            fastqheat.py {SRA Study identifier name SRP...} --skip_list {run id SRR...} --show yes
+
+            fastqheat.py {SRA Study identifier name SRP...} --only_list {run id SRR...}
 
     Ex 1: download all into the directory
                         python3 fastqheat.py SRP163674 --out /home/user/tmp
@@ -144,27 +141,20 @@ def fastqheat(term, terms, show, only_list, skip_list, ff, value,  out_dir, meth
         total_spots = []
         if show:
             if only_list == [] and skip_list == []:
-                webenv, query_key = get_webenv_and_query_key_with_total_list(
-                    term)
-                accession_list, total_spots = get_run_uid_with_no_exception(
-                    webenv, query_key
-                )
+                webenv, query_key = get_webenv_and_query_key_with_total_list(term)
+                accession_list, total_spots = get_run_uid_with_no_exception(webenv, query_key)
             elif skip_list != []:
                 webenv, query_key = get_webenv_and_query_key_with_skipped_list(
                     term=term, skip_list=skip_list
                 )
-                accession_list, total_spots = get_run_uid_with_no_exception(
-                    webenv, query_key
-                )
+                accession_list, total_spots = get_run_uid_with_no_exception(webenv, query_key)
             elif only_list != []:
-                accession_list, total_spots = get_run_uid_with_only_list(
-                                                only_list)
+                accession_list, total_spots = get_run_uid_with_only_list(only_list)
         else:
             if only_list == [] and skip_list == []:
                 accession_list, total_spots = get_run_uid_with_total_list(term, method)
             elif skip_list != []:
-                accession_list, total_spots = get_run_uid_with_skipped_list(
-                                                term, skip_list, method)
+                accession_list, total_spots = get_run_uid_with_skipped_list(term, skip_list, method)
             elif only_list != []:
                 if method == 'q':
                     accession_list = only_list
@@ -177,15 +167,12 @@ def fastqheat(term, terms, show, only_list, skip_list, ff, value,  out_dir, meth
             for i in range(0, len(accession_list)):
                 if method == "q":
                     success = handle_run(
-                            accession=accession_list[i],
-                            method=method,
-                            total_spots=total_spots[i]
+                        accession=accession_list[i],
+                        method=method,
+                        total_spots=total_spots[i],
                     )
                 else:
-                    success = handle_run(
-                            accession=accession_list[i],
-                            method=method
-                    )
+                    success = handle_run(accession=accession_list[i], method=method)
                 if success:
                     pass
                 else:
@@ -194,15 +181,12 @@ def fastqheat(term, terms, show, only_list, skip_list, ff, value,  out_dir, meth
                     if answer == "y":
                         if method == "q":
                             handle_run(
-                                    accession=accession_list[i],
-                                    method=method,
-                                    total_spots=total_spots[i]
+                                accession=accession_list[i],
+                                method=method,
+                                total_spots=total_spots[i],
                             )
                         else:
-                            handle_run(
-                                    accession=accession_list[i],
-                                    method=method
-                            )
+                            handle_run(accession=accession_list[i], method=method)
                     else:
                         pass
             logging.info("All runs were loaded.")
@@ -220,11 +204,8 @@ def fastqheat(term, terms, show, only_list, skip_list, ff, value,  out_dir, meth
         for term in terms:
             logging.info(f"Start working on Study Accession {term}")
             if show:
-                webenv, query_key = get_webenv_and_query_key_with_total_list(
-                        term=term)
-                accession_list, total_spots = get_run_uid_with_no_exception(
-                        webenv, query_key
-                    )
+                webenv, query_key = get_webenv_and_query_key_with_total_list(term=term)
+                accession_list, total_spots = get_run_uid_with_no_exception(webenv, query_key)
             else:
                 accession_list, total_spots = get_run_uid_with_total_list(term, method)
             # download every Run / metadata
@@ -239,15 +220,12 @@ def fastqheat(term, terms, show, only_list, skip_list, ff, value,  out_dir, meth
                 for i in range(0, len(accession_list)):
                     if method == "q":
                         success = handle_run(
-                                accession=accession_list[i],
-                                method=method,
-                                total_spots=total_spots[i]
+                            accession=accession_list[i],
+                            method=method,
+                            total_spots=total_spots[i],
                         )
                     else:
-                        success = handle_run(
-                                accession=accession_list[i],
-                                method=method
-                        )
+                        success = handle_run(accession=accession_list[i], method=method)
                     if success:
                         pass
                     else:
@@ -256,19 +234,15 @@ def fastqheat(term, terms, show, only_list, skip_list, ff, value,  out_dir, meth
                         if answer == "y":
                             if method == "q":
                                 handle_run(
-                                        accession=accession_list[i],
-                                        method=method,
-                                        total_spots=total_spots[i]
+                                    accession=accession_list[i],
+                                    method=method,
+                                    total_spots=total_spots[i],
                                 )
                             else:
-                                handle_run(
-                                        accession=accession_list[i],
-                                        method=method
-                                )
+                                handle_run(accession=accession_list[i], method=method)
                         else:
                             pass
                     logging.info(f"All runs were loaded from {term}.")
-
 
 
 def download_run_fasterq_dump(term, terms, run, out, total_spots=1):
@@ -303,9 +277,7 @@ def download_run_fasterq_dump(term, terms, run, out, total_spots=1):
         os.system(download_bash_command)
         # check completeness of the file and return boolean
         return check_loaded_run(
-                run_accession=run,
-                path=f"{out}/{term}",
-                needed_lines_cnt=total_spots
+            run_accession=run, path=f"{out}/{term}", needed_lines_cnt=total_spots
         )
     else:
         download_bash_command = f"fasterq-dump {run} -O {out} -p"
@@ -315,11 +287,7 @@ def download_run_fasterq_dump(term, terms, run, out, total_spots=1):
         # execute command in commandline
         os.system(download_bash_command)
         # check completeness of the file and return boolean
-        return check_loaded_run(
-                        run_accession=run,
-                        path=out,
-                        needed_lines_cnt=total_spots
-                )
+        return check_loaded_run(run_accession=run, path=out, needed_lines_cnt=total_spots)
 
 
 def download_run_ftp(term, terms, run, out):
@@ -356,7 +324,9 @@ def download_run_ftp(term, terms, run, out):
         SRR = ftps[i].split('/')[-1]
         md5 = md5s[i]
         if len(terms) != 0:
-            download_bash_command = f"mkdir -p {out}/{term} && curl -L {ftps[i]} -o {out}/{term}/{SRR}"
+            download_bash_command = (
+                f"mkdir -p {out}/{term} && curl -L {ftps[i]} -o {out}/{term}/{SRR}"
+            )
             logging.debug(download_bash_command)
             logging.info('Try to download {} file'.format(run))
             os.system(download_bash_command)
@@ -408,15 +378,15 @@ def download_run_aspc(term, terms, run, out):
         md5 = md5s[i]
         if len(terms) != 0:
 
-                download_bash_command = f'ascp -QT -l 300m -P33001 -i $HOME/.aspera/cli/etc/asperaweb_id_dsa.openssh era-fasp@{asperas[i]} . && mkdir -p {out}/{term} && mv {SRR} {out}/{term}/{SRR}'
+            download_bash_command = f'ascp -QT -l 300m -P33001 -i $HOME/.aspera/cli/etc/asperaweb_id_dsa.openssh era-fasp@{asperas[i]} . && mkdir -p {out}/{term} && mv {SRR} {out}/{term}/{SRR}'
 
-                logging.debug(download_bash_command)
+            logging.debug(download_bash_command)
 
-                logging.info('Try to download {} file'.format(run))
-                # execute command in commandline
-                os.system(download_bash_command)
-                # check completeness of the file and return boolean
-                correctness.append(md5_checksum(SRR, f"{out}/{term}", md5))
+            logging.info('Try to download {} file'.format(run))
+            # execute command in commandline
+            os.system(download_bash_command)
+            # check completeness of the file and return boolean
+            correctness.append(md5_checksum(SRR, f"{out}/{term}", md5))
         else:
             if out != '.':
                 download_bash_command = f'ascp -QT -l 300m -P33001 -i $HOME/.aspera/cli/etc/asperaweb_id_dsa.openssh era-fasp@{asperas[i]} . && mv {SRR} {out}/{SRR}'

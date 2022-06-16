@@ -1,14 +1,13 @@
 import argparse
 import logging
 import os
-import ssl
 import re
+import ssl
 
 import requests
 import urllib3
 
-from download import (download_run_aspc, download_run_fasterq_dump,
-                      download_run_ftp)
+from download import download_run_aspc, download_run_fasterq_dump, download_run_ftp
 from study_info.get_sra_study_info import get_run_uid
 
 
@@ -166,30 +165,27 @@ if __name__ == "__main__":
     parser.add_argument(
         "term",
         help="The name of SRA Study identifier, looks like SRP... or ERP... or DRP...  or .txt file name which includes multiple SRA Study identifiers",
-        action="store"
+        action="store",
     )
     parser.add_argument(
-        "-L", "--log",
+        "-L",
+        "--log",
         help="To point logging level (debug, info, warning, error.",
         action="store",
-        default="info"
+        default="info",
     )
     # parser.add_argument(
     #     "-N", "--only",
     #     help="The only_list. The list of the certain items to download. To write with ',' and without spaces.",
     #     action="store"
     # )
+    parser.add_argument("-O", "--out", help="Output directory", action="store", default=".")
     parser.add_argument(
-        "-O", "--out",
-        help="Output directory",
-        action="store",
-        default="."
-    )
-    parser.add_argument(
-        "-M", "--method",
+        "-M",
+        "--method",
         help="Choose different type of methods that should be used for data retrieval: Aspera (a), FTP (f), fasterq_dump (q). By default it is fasterq_dump (q)",
         action="store",
-        default='q'
+        default='q',
     )
     # parser.add_argument(
     #     "-P", "--skip",
@@ -277,10 +273,9 @@ if __name__ == "__main__":
         logging.error(e)
         logging.error("SRA Toolkit/Aspera CLI not installed or not pointed in path")
         exit(0)
-    parser.add_argument('--version',
-                        action='version',
-                        version=f'{tool} which use {fd_version} version'
-                        )
+    parser.add_argument(
+        '--version', action='version', version=f'{tool} which use {fd_version} version'
+    )
 
     # # args for skipping Runs
     # if args.skip:
@@ -344,10 +339,7 @@ if __name__ == "__main__":
             LOGGING_LEVEL = logging.ERROR
 
     try:
-        logging.basicConfig(
-            level=LOGGING_LEVEL,
-            format='[level=%(levelname)s]: %(message)s'
-        )
+        logging.basicConfig(level=LOGGING_LEVEL, format='[level=%(levelname)s]: %(message)s')
 
         if len(terms) == 0:
             handle_methods(term, method, out_dir)
@@ -360,15 +352,19 @@ if __name__ == "__main__":
         logging.error(e)
         print("Unexpected exit")
         exit(0)
-    except (requests.exceptions.SSLError,
-            urllib3.exceptions.MaxRetryError,
-            ssl.SSLEOFError) as e:
+    except (
+        requests.exceptions.SSLError,
+        urllib3.exceptions.MaxRetryError,
+        ssl.SSLEOFError,
+    ) as e:
         logging.error(e)
         print("Too many requests were made. Exiting system.")
         exit(0)
     except requests.exceptions.ConnectionError as e:
         logging.error(e)
-        print("Incorrect parameter(s) was/were provided to tool. Try again with correct ones from ENA.")
+        print(
+            "Incorrect parameter(s) was/were provided to tool. Try again with correct ones from ENA."
+        )
         exit(0)
     except KeyboardInterrupt:
         print("Session was interrupted!")

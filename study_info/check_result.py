@@ -64,10 +64,7 @@ def get_cnt_of_coding_loaded_lines(run_accession, path="."):
         int
     """
 
-    rate, total = get_info_about_all_loaded_lines(
-        run_accession=run_accession,
-        path=path
-    )
+    rate, total = get_info_about_all_loaded_lines(run_accession=run_accession, path=path)
 
     # 4 - fixed because of a fastq file content
     cnt = (total / rate) / 4
@@ -93,22 +90,21 @@ def check_loaded_run(run_accession, path=".", needed_lines_cnt=1):
         bool
     """
 
-    cnt_loaded = get_cnt_of_coding_loaded_lines(
-        run_accession=run_accession,
-        path=path
-    )
+    cnt_loaded = get_cnt_of_coding_loaded_lines(run_accession=run_accession, path=path)
 
     if cnt_loaded == needed_lines_cnt:
-        logging.info('Current Run: {} with {} total spots has been successfully downloaded'.format(
-            run_accession,
-            needed_lines_cnt
-        ))
+        logging.info(
+            'Current Run: {} with {} total spots has been successfully downloaded'.format(
+                run_accession, needed_lines_cnt
+            )
+        )
         return True
     else:
-        logging.warning('Loaded {} lines, but described {} lines. File has been downloaded INCORRECTLY'.format(
-            cnt_loaded,
-            needed_lines_cnt
-        ))
+        logging.warning(
+            'Loaded {} lines, but described {} lines. File has been downloaded INCORRECTLY'.format(
+                cnt_loaded, needed_lines_cnt
+            )
+        )
         return False
 
 
