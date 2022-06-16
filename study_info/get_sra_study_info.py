@@ -318,9 +318,7 @@ def get_run_uid_with_total_list(term, method):
     else:
         url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields=run_accession&format=json'
         response = requests.get(url)
-        SRRs = [
-            response.json()[i]['run_accession'] for i in range(0, len(response.json()))
-        ]
+        SRRs = [response.json()[i]['run_accession'] for i in range(0, len(response.json()))]
     logging.info('List of total runs: {}'.format(SRRs))
     return SRRs, total_spots
 
@@ -361,9 +359,7 @@ def get_run_uid_with_skipped_list(term, skip_list, method):
     else:
         url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields=run_accession&format=json'
         response = requests.get(url)
-        SRRs = [
-            response.json()[i]['run_accession'] for i in range(0, len(response.json()))
-        ]
+        SRRs = [response.json()[i]['run_accession'] for i in range(0, len(response.json()))]
         logging.debug('Total list: {}'.format(SRRs))
         SRRs = list(set(SRRs) - set(skip_list))
         logging.debug('Skip list: {}'.format(skip_list))
@@ -388,9 +384,7 @@ def get_full_metadata(accession_list, value):
             async with aiohttp.ClientSession() as session:
                 tasks = []
                 for accession in accession_list:
-                    task = asyncio.ensure_future(
-                        get_accession_metadata(session, accession, value)
-                    )
+                    task = asyncio.ensure_future(get_accession_metadata(session, accession, value))
                     tasks.append(task)
 
                 metadata = await asyncio.gather(*tasks)
