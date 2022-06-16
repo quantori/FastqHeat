@@ -1,6 +1,26 @@
+[tool.poetry]
+name = "FastqHeat"
+version = "0.0.1"
+description = "Helper for downloading metagenomic data from SRA database"
+authors = ["Quantori"]
+
+[tool.poetry.dependencies]
+python = ">=3.8,<4"
+aiohttp = "3.8.1"
+beautifulsoup4 = "4.10.0"
+pandas = "1.4.0"
+PyYAML = "6.0"
+requests = "2.22.0"
+urllib3 = "1.25.8"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1.2"
+black = "^22.3.0"
+isort = "^5.10.1"
+flake8 = "^4.0.1"
+
 [tool.black]
-# 88 is the default, doesn't hurt to set it explicitly
-line-length = 88
+line-length = 100
 skip-string-normalization = true
 exclude = '''
 (
@@ -13,7 +33,7 @@ exclude = '''
 
 [tool.isort]
 # To match black's line length
-line_length = 88
+line_length = 100
 include_trailing_comma = true
 multi_line_output = 3
 known_third_party=["aiohttp", "bs4", "pandas", "pytest", "requests", "urllib3", "yaml"]

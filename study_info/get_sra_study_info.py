@@ -391,9 +391,7 @@ def get_full_metadata(accession_list, value):
             async with aiohttp.ClientSession() as session:
                 tasks = []
                 for accession in accession_list:
-                    task = asyncio.ensure_future(
-                        get_accession_metadata(session, accession, value)
-                    )
+                    task = asyncio.ensure_future(get_accession_metadata(session, accession, value))
                     tasks.append(task)
 
                 metadata = await asyncio.gather(*tasks)

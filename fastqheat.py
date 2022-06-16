@@ -11,9 +11,7 @@ from download import download_run_aspc, download_run_fasterq_dump, download_run_
 from study_info.get_sra_study_info import get_run_uid
 
 SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
-SRP_PATTERN = re.compile(
-    r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$'
-)
+SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
 
 
 def _handle_f_method(term, out):
