@@ -319,6 +319,7 @@ def get_run_uid_with_total_list(term, method):
         url = f'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={term}&result=read_run&fields=run_accession&format=json'
         response = requests.get(url)
         SRRs = [response.json()[i]['run_accession'] for i in range(0, len(response.json()))]
+
     logging.info('List of total runs: %s', SRRs)
     return SRRs, total_spots
 
