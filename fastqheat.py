@@ -13,9 +13,7 @@ from study_info.get_sra_study_info import get_run_uid
 
 def handle_methods(term, method, out):
     SRR_pattern = re.compile(r'^(SRR|ERR|DRR)\d+$')
-    SRP_pattern = re.compile(
-        r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$'
-    )
+    SRP_pattern = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
     if method == "f":
         if SRR_pattern.search(term) is not None:
             accession = term
@@ -40,17 +38,13 @@ def handle_methods(term, method, out):
                 if success:
                     pass
                 else:
-                    logging.warning(
-                        "Failed to download %s. Trying once more.", accession
-                    )
+                    logging.warning("Failed to download %s. Trying once more.", accession)
                     success = download_run_ftp(accession, term, out)
                     if success:
                         logging.info("The second try was successful!")
                         pass
                     else:
-                        logging.error(
-                            "Failed the second try. Skipping the %s", accession
-                        )
+                        logging.error("Failed the second try. Skipping the %s", accession)
                         pass
 
     if method == "a":
@@ -78,17 +72,13 @@ def handle_methods(term, method, out):
                 if success:
                     pass
                 else:
-                    logging.warning(
-                        "Failed to download %s. Trying once more.", accession
-                    )
+                    logging.warning("Failed to download %s. Trying once more.", accession)
                     success = download_run_aspc(accession, term, out)
                     if success:
                         logging.info("The second try was successful!")
                         pass
                     else:
-                        logging.error(
-                            "Failed the second try. Skipping the %s", accession
-                        )
+                        logging.error("Failed the second try. Skipping the %s", accession)
                         pass
 
     if method == "q":
@@ -121,19 +111,13 @@ def handle_methods(term, method, out):
                 if success:
                     pass
                 else:
-                    logging.warning(
-                        "Failed to download %s. Trying once more.", accession
-                    )
-                    success = download_run_fasterq_dump(
-                        accession, term, read_count, out
-                    )
+                    logging.warning("Failed to download %s. Trying once more.", accession)
+                    success = download_run_fasterq_dump(accession, term, read_count, out)
                     if success:
                         logging.info("The second try was successful!")
                         pass
                     else:
-                        logging.error(
-                            "Failed the second try. Skipping the %s", accession
-                        )
+                        logging.error("Failed the second try. Skipping the %s", accession)
                         pass
 
 
@@ -196,9 +180,7 @@ if __name__ == "__main__":
     #     help="The only_list. The list of the certain items to download. To write with ',' and without spaces.",
     #     action="store"
     # )
-    parser.add_argument(
-        "-O", "--out", help="Output directory", action="store", default="."
-    )
+    parser.add_argument("-O", "--out", help="Output directory", action="store", default=".")
     parser.add_argument(
         "-M",
         "--method",

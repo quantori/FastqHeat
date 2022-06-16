@@ -55,9 +55,7 @@ def handle_run(accession, accession_list, term, terms, method, out_dir, total_sp
                     logging.warning("Run {} was loaded incorrectly!".format(accession))
                     return False
             elif method == 'a':
-                if download_run_aspc(
-                    term=term, terms=terms, run=accession, out=out_dir
-                ):
+                if download_run_aspc(term=term, terms=terms, run=accession, out=out_dir):
                     logging.info('A try was finished.')
                     logging.info("Run {} was correctly downloaded".format(accession))
                     return True
@@ -144,25 +142,19 @@ def fastqheat(term, terms, show, only_list, skip_list, ff, value, out_dir, metho
         if show:
             if only_list == [] and skip_list == []:
                 webenv, query_key = get_webenv_and_query_key_with_total_list(term)
-                accession_list, total_spots = get_run_uid_with_no_exception(
-                    webenv, query_key
-                )
+                accession_list, total_spots = get_run_uid_with_no_exception(webenv, query_key)
             elif skip_list != []:
                 webenv, query_key = get_webenv_and_query_key_with_skipped_list(
                     term=term, skip_list=skip_list
                 )
-                accession_list, total_spots = get_run_uid_with_no_exception(
-                    webenv, query_key
-                )
+                accession_list, total_spots = get_run_uid_with_no_exception(webenv, query_key)
             elif only_list != []:
                 accession_list, total_spots = get_run_uid_with_only_list(only_list)
         else:
             if only_list == [] and skip_list == []:
                 accession_list, total_spots = get_run_uid_with_total_list(term, method)
             elif skip_list != []:
-                accession_list, total_spots = get_run_uid_with_skipped_list(
-                    term, skip_list, method
-                )
+                accession_list, total_spots = get_run_uid_with_skipped_list(term, skip_list, method)
             elif only_list != []:
                 if method == 'q':
                     accession_list = only_list
@@ -213,9 +205,7 @@ def fastqheat(term, terms, show, only_list, skip_list, ff, value, out_dir, metho
             logging.info(f"Start working on Study Accession {term}")
             if show:
                 webenv, query_key = get_webenv_and_query_key_with_total_list(term=term)
-                accession_list, total_spots = get_run_uid_with_no_exception(
-                    webenv, query_key
-                )
+                accession_list, total_spots = get_run_uid_with_no_exception(webenv, query_key)
             else:
                 accession_list, total_spots = get_run_uid_with_total_list(term, method)
             # download every Run / metadata
@@ -297,9 +287,7 @@ def download_run_fasterq_dump(term, terms, run, out, total_spots=1):
         # execute command in commandline
         os.system(download_bash_command)
         # check completeness of the file and return boolean
-        return check_loaded_run(
-            run_accession=run, path=out, needed_lines_cnt=total_spots
-        )
+        return check_loaded_run(run_accession=run, path=out, needed_lines_cnt=total_spots)
 
 
 def download_run_ftp(term, terms, run, out):

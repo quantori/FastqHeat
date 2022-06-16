@@ -79,9 +79,7 @@ def download_run_ftp(accession, term, out):
     for i in range(0, len(ftps)):
         SRR = ftps[i].split('/')[-1]
         md5 = md5s[i]
-        bash_command = (
-            f"mkdir -p {out}/{term} && curl -L {ftps[i]} -o {out}/{term}/{SRR}"
-        )
+        bash_command = f"mkdir -p {out}/{term} && curl -L {ftps[i]} -o {out}/{term}/{SRR}"
         logging.debug(bash_command)
         logging.info('Try to download %s file', SRR)
         # execute command in commandline

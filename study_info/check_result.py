@@ -34,9 +34,7 @@ def get_info_about_all_loaded_lines(run_accession, path="."):
         logging.error('The %s fastq file is empty or not exists', run_accession)
         exit(0)
     elif cnt_entries == 1:
-        logging.debug(
-            'we loaded single-stranded read and have not to divide by 2 cnt of lines'
-        )
+        logging.debug('we loaded single-stranded read and have not to divide by 2 cnt of lines')
         rate = 1
     else:
         #  for two-stranded file the output will be:
@@ -66,9 +64,7 @@ def get_cnt_of_coding_loaded_lines(run_accession, path="."):
         int
     """
 
-    rate, total = get_info_about_all_loaded_lines(
-        run_accession=run_accession, path=path
-    )
+    rate, total = get_info_about_all_loaded_lines(run_accession=run_accession, path=path)
 
     # 4 - fixed because of a fastq file content
     cnt = (total / rate) / 4
