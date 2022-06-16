@@ -369,6 +369,7 @@ def get_run_uid_with_skipped_list(term, skip_list, method):
         SRRs = [data['run_accession'] for data in response.json()]
         logging.debug('Total list: %s', SRRs)
         SRRs = list(set(SRRs) - skip_set)
+
         logging.debug('Skip list: %s', skip_list)
         logging.info('List of runs without skipped: %s', SRRs)
 
