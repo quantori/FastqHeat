@@ -1,6 +1,5 @@
 [tool.black]
-# 88 is the default, doesn't hurt to set it explicitly
-line-length = 88
+line-length = 100
 skip-string-normalization = true
 exclude = '''
 (
@@ -13,7 +12,7 @@ exclude = '''
 
 [tool.isort]
 # To match black's line length
-line_length = 88
+line_length = 100
 include_trailing_comma = true
 multi_line_output = 3
 known_third_party=["aiohttp", "bs4", "pandas", "pytest", "requests", "urllib3", "yaml"]
