@@ -76,19 +76,21 @@ def download_run_ftp(accession, term, out):
     md5s = response.json()[0]['fastq_md5'].split(';')
     correctness = []
 
-    for i in range(0, len(ftps)):
-        SRR = ftps[i].split('/')[-1]
-        md5 = md5s[i]
-        bash_command = f"mkdir -p {out}/{term} && curl -L {ftps[i]} -o {out}/{term}/{SRR}"
+    for ftp, md5 in zip(ftps, md5s):
+        SRR = ftp.split('/')[-1]
+        bash_command = f"mkdir -p {out}/{term} && curl -L {ftp} -o {out}/{term}/{SRR}"
+
         logging.debug(bash_command)
         logging.info('Try to download %s file', SRR)
         # execute command in commandline
         os.system(bash_command)
         # check completeness of the file and return boolean
         correctness.append(md5_checksum(SRR, f"{out}/{term}", md5))
+
     if all(correctness):
         logging.info("Current Run: %s has been successfully downloaded", accession)
-    return all(correctness)
+        return True
+    return False
 
 
 def download_run_aspc(accession, term, out):
@@ -120,10 +122,9 @@ def download_run_aspc(accession, term, out):
     md5s = response.json()[0]['fastq_md5'].split(';')
     correctness = []
 
-    for i in range(0, len(asperas)):
-        SRR = asperas[i].split('/')[-1]
-        md5 = md5s[i]
-        bash_command = f'ascp -QT -l 300m -P33001 -i $HOME/.aspera/cli/etc/asperaweb_id_dsa.openssh era-fasp@{asperas[i]} . && mkdir -p {out}/{term} && mv {SRR} {out}/{term}'
+    for aspera, md5 in zip(asperas, md5s):
+        SRR = aspera.split('/')[-1]
+        bash_command = f'ascp -QT -l 300m -P33001 -i $HOME/.aspera/cli/etc/asperaweb_id_dsa.openssh era-fasp@{aspera} . && mkdir -p {out}/{term} && mv {SRR} {out}/{term}'
         logging.debug(bash_command)
         logging.info('Try to download %s file', SRR)
         # execute command in commandline
@@ -134,5 +135,4 @@ def download_run_aspc(accession, term, out):
     if all(correctness):
         logging.info("Current Run: %s has been successfully downloaded", accession)
         return True
-    else:
-        return False
+    return False
