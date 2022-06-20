@@ -42,7 +42,7 @@ def download_run_fasterq_dump(accession, term, total_spots, out):
     )
     if correctness:
         logging.info("")
-        os.system(f"gzip {term}/{accession}*")
+        os.system(f"pigz {term}/{accession}*")
         logging.info("%s FASTQ file has been zipped", accession)
     return correctness
 
