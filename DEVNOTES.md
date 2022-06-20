@@ -19,8 +19,8 @@ Install dependencies with [`poetry`](https://python-poetry.org/):
 Make sure you've installed optional command-line utilities as well.
 If you add new Python dependencies, they should be included in
 [`pyproject.toml`](pyproject.toml) in the relevant sections (don't forget
-to recreate `poetry.lock` after you're done). All new non-Python dependencies
-should be documented in [README.md](README.md).
+to recreate [`poetry.lock`](poetry.lock) after you're done). All new
+non-Python dependencies should be documented in [README.md](README.md).
 
 To check that everything is in order:
 
