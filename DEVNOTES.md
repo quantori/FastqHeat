@@ -1,23 +1,31 @@
-## Installation instructions
-* Ensure you have fasterq-dump installed. [Installation of sra toolkit from binaries](https://github.com/ncbi/sra-tools/wiki/HowTo:-Binary-Installation) or Aspera CLI installed. [Installation of Aspera CLI](https://www.ibm.com/docs/en/aci/3.9.2?topic=aspera-command-line-interface-user-guide-linux)
+# Development guide
 
-* Also you need to add a path to the tools permanently(!).  
-On MacOS you need add the lines `/Users/username/path_to_the_sra/sratoolkit.(version)/bin` into the file `/etc/paths`. (And restart the terminal).
-To check adding type `which fastq-dump`. You must see the path to the sra tools.
+Development happens on the `dev` branch. `master` is the stable branch.
 
-* Download the repository
+Clone the project, enter the project directory, and switch to the development branch:
 
-`git clone https://github.com/quantori/FastqHeat.git`
+```bash
+~$ git clone git@github.com:quantori/FastqHeat.git
+~$ cd FastqHeat/
+~/FastqHeat$ git checkout dev
+```
 
-`cd FastqHeat`
+Install dependencies with [`poetry`](https://python-poetry.org/):
 
-* Install python dependencies
+```bash
+~/FastqHeat$ poetry install  # NOTE: includes dev dependencies
+```
 
-`pip3 install -r requirements.txt`
+Make sure you've installed optional command-line utilities as well.
+If you add new Python dependencies, they should be included in
+[`pyproject.toml`](pyproject.toml) in the relevant sections (don't forget
+to recreate `poetry.lock` after you're done). All new non-Python dependencies
+should be documented in [README.md](README.md).
 
-* Script is ready to be used
+To check that everything is in order:
 
-`py.test -v tests/test_input.py`
-
-`python3 fastqheat.py -h`
-
+```bash
+~/FastqHeat$ make format  # Formats code
+~/FastqHeat$ make lint  # Runs linters against code
+~/FastqHeat$ make test  # Runs unit tests
+```
