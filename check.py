@@ -22,6 +22,7 @@ def get_info_about_all_loaded_lines(run_accession, path="."):
     filename = os.path.join(path, filename)
 
     wc = "wc -l {}".format(filename)
+    # gunzip -c {} | wc -l
     entries = os.popen(wc).read()
 
     entries = entries.strip('\'').split('\n')[:-1]
