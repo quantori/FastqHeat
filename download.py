@@ -41,7 +41,7 @@ def download_run_fasterq_dump(accession, term, total_spots, out):
         run_accession=accession, path=f"{out}/{term}", needed_lines_cnt=total_spots
     )
     if correctness:
-        logging.info("")
+        logging.info("Compressing %s FASTQ file", accession)
         os.system(f"pigz {term}/{accession}*")
         logging.info("%s FASTQ file has been zipped", accession)
     return correctness
