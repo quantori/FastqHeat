@@ -59,7 +59,7 @@ Will download files using FTP and `curl`.
 ## CLI
 
 ```
-usage: fastqheat.py [-h] [-L {debug,info,warning,error}] [-O OUT] [-M METHOD] term
+usage: fastqheat.py [-h] [-L {debug,info,warning,error}] [-O OUT] [-M METHOD] [-c CORES] term
 
 positional arguments:
   term                  The name of SRA Study identifier, looks like SRP... or ERP... or DRP...
@@ -73,6 +73,8 @@ options:
   -M METHOD, --method METHOD
                         Choose different type of methods that should be used for data retrieval:
                         Aspera (a), FTP (f), fasterq_dump (q). By default it is fasterq_dump (q)
+  -c CORES, --cores CORES
+                        Number of CPU cores to utilise (for subcommands that support parallel execution)
 ```
 
 This is also accessible as `fastqheat.py -h/--help`.
