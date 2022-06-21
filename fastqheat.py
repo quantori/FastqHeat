@@ -15,6 +15,14 @@ SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[
 USABLE_CPUS_COUNT = len(os.sched_getaffinity(0))
 
 
+def _positive_integer_argument(value):
+    converted = int(value)
+    if converted <= 0:
+        raise ValueError
+
+    return converted
+
+
 def _handle_f_method(term, out):
     total_count = 0
     successful_count = 0
@@ -217,6 +225,7 @@ if __name__ == "__main__":
         '--cores',
         help='Number of CPU cores to utilise (for subcommands that support parallel execution)',
         default=USABLE_CPUS_COUNT,
+        type=_positive_integer_argument,
     )
     args = parser.parse_args()
 
