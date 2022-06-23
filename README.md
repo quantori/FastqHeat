@@ -44,8 +44,8 @@ command-line utilities, as explained below.
 Requires `fasterq-dump` executable installed and added to `PATH`. Consult the
 [SRA Toolkit documentation](https://github.com/ncbi/sra-tools/wiki/HowTo:-Binary-Installation)
 for detailed instructions. After downloading files, this program will verify them with `wc`
-and compress them with `gzip` (both should be preinstalled on most Linux distributions
-and macOS).
+(should be preinstalled on most Linux distributions and macOS) and compress them with
+[`pigz`](https://github.com/madler/pigz) (can be installed with `apt` on Debian-based systems).
 
 ### Aspera CLI
 
