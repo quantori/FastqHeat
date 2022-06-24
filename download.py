@@ -9,90 +9,16 @@ from pathlib import Path
 
 import requests
 
+import metadata
 from check import check_loaded_run, md5_checksum
-from metadata import get_run_uid
 
 SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
 SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
 USABLE_CPUS_COUNT = len(os.sched_getaffinity(0))
 
-def handle_methods(term, method, out):
-    # accessions = []
 
-    if SRR_PATTERN.search(term):
-        accession = term  # append(?)
-    elif SRP_PATTERN.search(term):
-        accession_list = get_run_uid(term, approach="srp")
-
-    # for accession in accessions:
-    if method == "f":
-        success = download_run_ftp(accession, term, out)
-
-        if not success:
-            """
-            Заменить на библиотеку
-            logging.warning("Failed to download %s. Trying once more.", accession)
-            success = download_run_fasterq_dump(accession, term, read_count, out)
-            if success:
-                logging.info("The second try was successful!")
-            else:
-                logging.error("Failed the second try. Skipping the %s", accession)
-            """
-
-    elif method == "a":
-        success = download_run_aspc(accession, term, out)
-
-        if not success:
-            """
-            Заменить на библиотеку
-            logging.warning("Failed to download %s. Trying once more.", accession)
-            success = download_run_fasterq_dump(accession, term, read_count, out)
-            if success:
-                logging.info("The second try was successful!")
-            else:
-                logging.error("Failed the second try. Skipping the %s", accession)
-            """
-    elif method == "q":
-        success = download_run_fasterq_dump(accession, term, out)
-
-        if not success:
-            """
-            Заменить на библиотеку
-            logging.warning("Failed to download %s. Trying once more.", accession)
-            success = download_run_fasterq_dump(accession, term, read_count, out)
-            if success:
-                logging.info("The second try was successful!")
-            else:
-                logging.error("Failed the second try. Skipping the %s", accession)
-            """
-
-def download_run_fasterq_dump(accession, term, output_directory, *, core_count):
-
-    """
-    Download the run from from NCBI's Sequence Read Archive (SRA)
-    using fasterq_dump and check completeness of downloaded
-    fastq file
-
-    Parameters
-    ----------
-    term: str
-            a string of Study Accession
-    terms: list
-            a list of Study Accessions from provided .txt file
-            this parameter can be empy if single accession is provided
-    run: str
-            a string of Run Accession
-    out: str
-            The output directory
-    total_spots: int
-            Number of total spots of each Run Accession
-
-    Returns
-    -------
-    bool
-        True if run was correctly downloaded, otherwise- False
-    """
-    total_spots = get_run_uid(accession, approach="sra")
+def download_run_fasterq_dump(accession, term, output_directory):
+    total_spots = metadata.get_read_count(accession)
 
     output_directory = Path(output_directory, term)
     logging.info('Trying to download %s file', accession)
@@ -115,7 +41,7 @@ def download_run_fasterq_dump(accession, term, output_directory, *, core_count):
 
 def download_run_ftp(accession, term, out):
     correctness = []
-    md5s, ftps, _,  = get_run_uid(accession, approach="ena")
+    ftps, md5s = metadata.get_urls_and_md5s(accession)
 
     for ftp, md5 in zip(ftps, md5s):
         SRR = ftp.split('/')[-1]
@@ -137,11 +63,11 @@ def download_run_ftp(accession, term, out):
 def download_run_aspc(accession, term, out):
     correctness = []
 
-    md5s, _, asperas = get_run_uid(accession, approach="ena")
+    asperas, md5s = metadata.get_urls_and_md5s(accession)
 
     for aspera, md5 in zip(asperas, md5s):
         SRR = aspera.split('/')[-1]
-        bash_command = f'ascp -QT -l 300m -P33001 -i $HOME/.aspera/cli/etc/asperaweb_id_dsa.openssh era-fasp@{aspera} . && mkdir -p {out}/{term} && mv {SRR} {out}/{term}'
+        bash_command = f'ascp -QT -l 300m -P33001 -i $HOME/.aspera/cli/etc/asperaweb_id_dsa.openssh era-fasp@{aspera} . && mkdir -p {out}/{term} && mv {SRR} {out}/{term}'  # noqa: E501 line too long - will be fixed in next PRs
         logging.debug(bash_command)
         logging.info('Try to download %s file', SRR)
         # execute command in commandline
@@ -155,6 +81,73 @@ def download_run_aspc(accession, term, out):
     return False
 
 
+method_to_download_function = {
+    "f": download_run_ftp,
+    "a": download_run_aspc,
+    "q": download_run_fasterq_dump,
+}
+
+
+def _make_accession_list(term_: str) -> list[str]:
+    """Get an accession list based on pattern of the given term."""
+    if SRR_PATTERN.search(term_):
+        accession_list = [term_]
+    elif SRP_PATTERN.search(term_):
+        accession_list = metadata.get_srr_ids_from_srp(term_)
+    else:
+        raise ValueError(f"Unknown pattern: {term_}")
+
+    return accession_list
+
+
+def handle_methods(term_: str, method_: str, out) -> bool:
+    """Runs specific download function based on the given method."""
+    states = []
+    try:
+        download_function = method_to_download_function[method_]
+    except KeyError:
+        raise ValueError(f"Unknown method: {method_}")
+
+    accession_list = _make_accession_list(term_)
+
+    for accession in accession_list:
+        states.append(download_function(accession, out))
+
+    return all(states)
+
+
+class TermParser:
+    """
+    Provides a method for parsing terms from a string.
+
+    A string can represent a singular term or a *.txt file with a few terms.
+    """
+
+    def __init__(self, directory: str):
+        self.terms = []
+        self.directory = directory
+
+    @staticmethod
+    def _parse_terms_from_file(filename: str) -> list[str]:
+        with open(f"{out_dir}/{filename}", "r") as file:
+            return [line.strip() for line in file]
+
+    def parse_from_input(self, input_string: str):
+        if not input_string:
+            logging.error('Empty term.')
+            raise ValueError
+
+        if input_string.endswith('.txt'):
+            self.terms = self._parse_terms_from_file(input_string)
+        elif "." not in input_string:
+            self.terms = [input_string]
+        else:
+            logging.error('Use either correct term or only .txt file format.')
+            raise ValueError
+
+        return self.terms
+
+
 if __name__ == "__main__":
     # For debugging use
     # term = 'SRP150545'  #   6 files more than 2-3Gb each
@@ -163,7 +156,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "term",
-        help="The name of SRA Study identifier, looks like SRP... or ERP... or DRP...  or .txt file name which includes multiple SRA Study identifiers",
+        help=(
+            "The name of SRA Study identifier, looks like SRP... or ERP... or DRP...  "
+            "or .txt file name which includes multiple SRA Study identifiers",
+        ),
     )
     parser.add_argument(
         "-L",
@@ -177,10 +173,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "-M",
         "--method",
-        help="Choose different type of methods that should be used for data retrieval: Aspera (a), FTP (f), fasterq_dump (q). By default it is fasterq_dump (q)",
+        help=(
+            "Choose different type of methods that should be used for data retrieval: "
+            "Aspera (a), FTP (f), fasterq_dump (q). By default it is fasterq_dump (q)"
+        ),
         default='q',
     )
     args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s:%(levelname)s:%(name)s:%(message)s")
 
     # choose method type
     if args.method:
@@ -215,31 +216,11 @@ if __name__ == "__main__":
             logging.error('Pointed directory does not exist.')
             exit(0)
 
-    if args.term:
-        term = args.term
-        if term.endswith('.txt'):
-            with open(f"{out_dir}/{term}", "r") as file:
-                terms = [line.strip() for line in file]
-        elif '.' not in term:
-            terms = []
-        else:
-            logging.error('Use either correct term or only .txt file format.')
-            exit(0)
-    else:
-        logging.error('Use correct term name.')
-        exit(0)
+    terms = TermParser(out_dir).parse_from_input(args.term)
 
     try:
-        logging.basicConfig(
-            level=args.log_level.upper(), format='[level=%(levelname)s]: %(message)s'
-        )
-
-        if not terms:
-            handle_methods(term, method, out_dir)
-            logging.info("All runs were loaded.")
-        else:
-            for term in terms:
-                handle_methods(term, method, out_dir)
+        for term in terms:
+            if handle_methods(term, method, out_dir):
                 logging.info("All runs were loaded.")
     except ValueError as e:
         logging.error(e)
@@ -255,9 +236,7 @@ if __name__ == "__main__":
         exit(0)
     except requests.exceptions.ConnectionError as e:
         logging.error(e)
-        print(
-            "Incorrect parameter(s) was/were provided to tool. Try again with correct ones from ENA."
-        )
+        print("Incorrect parameters were provided to tool. Try again with correct ones from ENA.")
         exit(0)
     except KeyboardInterrupt:
         print("Session was interrupted!")
