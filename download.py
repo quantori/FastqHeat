@@ -91,15 +91,13 @@ def download_run_ftp(accession, output_directory, **kwargs):
     """
     ftps, md5s = metadata.get_urls_and_md5s(accession)
     successful = True
-    output_directory = Path(output_directory)
+    accession_directory = Path(output_directory, accession)
+    accession_directory.mkdir(parents=True, exist_ok=True)
 
     for ftp, md5 in zip(ftps, md5s):
-        term_directory = output_directory / term
-        term_directory.mkdir(parents=True, exist_ok=True)
-
         srr = ftp.split('/')[-1]
         logging.info('Trying to download %s file', srr)
-        file_path = term_directory / srr
+        file_path = accession_directory / srr
 
         _download_file(_force_ena_http(ftp), file_path)
 
@@ -144,12 +142,10 @@ def download_run_aspc(accession, output_directory):
 
     asperas, md5s = metadata.get_urls_and_md5s(accession)
     successful = True
-    output_directory = Path(output_directory)
+    accession_directory = Path(output_directory, accession)
+    accession_directory.mkdir(parents=True, exist_ok=True)
 
     for aspera, md5 in zip(asperas, md5s):
-        term_directory = output_directory / term
-        term_directory.mkdir(parents=True, exist_ok=True)
-
         srr = aspera.split('/')[-1]
         logging.info('Trying to download %s file', srr)
 
@@ -169,7 +165,7 @@ def download_run_aspc(accession, output_directory):
             check=True,
         )
 
-        file_path = Path(srr).rename(term_directory / srr)
+        file_path = Path(srr).rename(accession_directory / srr)
         # check completeness of the file
         if not md5_checksum(file_path, md5):
             successful = False
@@ -337,12 +333,10 @@ if __name__ == "__main__":
 
     terms = TermParser(out_dir).parse_from_input(args.term)
 
-    total_terms = 0
-    successful_terms = 0
-
+    total_states = []
     for term in terms:
         try:
-            successful = handle_methods(term, method, out_dir, core_count=args.cores)
+            total_states.append(handle_methods(term, method, out_dir, core_count=args.cores))
         except (
             requests.exceptions.SSLError,
             urllib3.exceptions.MaxRetryError,
@@ -365,11 +359,8 @@ if __name__ == "__main__":
             print("Something went wrong! Exiting the system!")
             exit(0)
 
-        total_terms += 1
-        successful_terms += int(successful)
-
     logging.info(
         "A total of %d runs were successfully loaded and %d failed to load.",
-        successful_terms,
-        total_terms - successful_terms,
+        len(total_states),
+        total_states.count(False),
     )
