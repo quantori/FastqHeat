@@ -3,11 +3,11 @@ import logging
 import os
 import re
 import ssl
-import urllib3
 import subprocess
 from pathlib import Path
 
 import requests
+import urllib3
 
 import metadata
 from check import check_loaded_run, md5_checksum
@@ -17,7 +17,24 @@ SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[
 USABLE_CPUS_COUNT = len(os.sched_getaffinity(0))
 
 
-def download_run_fasterq_dump(accession, term, output_directory):
+def download_run_fasterq_dump(accession, output_directory, *, core_count):
+    """
+    Download the run from NCBI's Sequence Read Archive (SRA)
+
+    Uses fasterq_dump and check completeness of downloaded fastq file
+    Parameters
+    ----------
+    accession: str
+        a string of Study Accession
+    output_directory: str
+        The output directory
+    core_count: int
+        Number of cores to utilize
+    Returns
+    -------
+    bool
+        True if run was correctly downloaded, otherwise - False
+    """
     total_spots = metadata.get_read_count(accession)
 
     output_directory = Path(output_directory, term)
@@ -39,20 +56,36 @@ def download_run_fasterq_dump(accession, term, output_directory):
     return correctness
 
 
-def download_run_ftp(accession, term, out):
+def download_run_ftp(accession, output_directory, **kwargs):
+    """
+    Download the run from European Nucleotide Archive (ENA)
+
+    Users FTP and checks completeness of downloaded gunzipped fastq file
+
+    Parameters
+    ----------
+    accession: str
+        a string of Study Accession
+
+    output_directory: str
+        The output directory
+    Returns
+    -------
+    bool
+        True if run was correctly downloaded, otherwise - False
+    """
     correctness = []
     ftps, md5s = metadata.get_urls_and_md5s(accession)
 
     for ftp, md5 in zip(ftps, md5s):
-        SRR = ftp.split('/')[-1]
-        bash_command = f"mkdir -p {out}/{term} && curl -L {ftp} -o {out}/{term}/{SRR}"
-
+        srr_ids = ftp.split('/')[-1]
+        bash_command = f'mkdir -p {output_directory}/{accession} && curl -L {ftp} -o {output_directory}/{accession}/{srr_ids}'  # noqa: E501 line too long - will be fixed in next PRs
         logging.debug(bash_command)
-        logging.info('Try to download %s file', SRR)
+        logging.info('Try to download %s file', srr_ids)
         # execute command in commandline
         os.system(bash_command)
         # check completeness of the file and return boolean
-        correctness.append(md5_checksum(SRR, f"{out}/{term}", md5))
+        correctness.append(md5_checksum(srr_ids, f"{output_directory}/{term}", md5))
 
     if all(correctness):
         logging.info("Current Run: %s has been successfully downloaded", accession)
@@ -60,20 +93,36 @@ def download_run_ftp(accession, term, out):
     return False
 
 
-def download_run_aspc(accession, term, out):
+def download_run_aspc(accession, output_directory):
+    """
+    Download the run from European Nucleotide Archive (ENA)
+
+    Uses Aspera and checks completeness of downloaded gunzipped fastq file
+
+    Parameters
+    ----------
+    accession: str
+        a string of Study Accession
+    output_directory: str
+            The output directory
+    Returns
+    -------
+    bool
+        True if run was correctly downloaded, otherwise - False
+    """
     correctness = []
 
     asperas, md5s = metadata.get_urls_and_md5s(accession)
 
     for aspera, md5 in zip(asperas, md5s):
         SRR = aspera.split('/')[-1]
-        bash_command = f'ascp -QT -l 300m -P33001 -i $HOME/.aspera/cli/etc/asperaweb_id_dsa.openssh era-fasp@{aspera} . && mkdir -p {out}/{term} && mv {SRR} {out}/{term}'  # noqa: E501 line too long - will be fixed in next PRs
+        bash_command = f'ascp -QT -l 300m -P33001 -i $HOME/.aspera/cli/etc/asperaweb_id_dsa.openssh era-fasp@{aspera} . && mkdir -p {output_directory}/{term} && mv {SRR} {output_directory}/{term}'  # noqa: E501 line too long - will be fixed in next PRs
         logging.debug(bash_command)
         logging.info('Try to download %s file', SRR)
         # execute command in commandline
         os.system(bash_command)
         # check completeness of the file and return boolean
-        correctness.append(md5_checksum(SRR, f"{out}/{term}", md5))
+        correctness.append(md5_checksum(SRR, f"{output_directory}/{term}", md5))
 
     if all(correctness):
         logging.info("Current Run: %s has been successfully downloaded", accession)
@@ -100,8 +149,9 @@ def _make_accession_list(term: str) -> list[str]:
     return accession_list
 
 
-def handle_methods(term: str, method: str, out) -> bool:
+def handle_methods(term: str, method: str, out, *, core_count: int) -> bool:
     """Runs specific download function based on the given method."""
+
     states = []
     try:
         download_function = method_to_download_function[method]
@@ -110,10 +160,14 @@ def handle_methods(term: str, method: str, out) -> bool:
 
     accession_list = _make_accession_list(term)
 
-    for accession in accession_list:
-        states.append(download_function(accession, out))
+    if method == 'q':
+        for accession in accession_list:
+            states.append(download_function(accession, out, core_count=core_count))
+    else:
+        for accession in accession_list:
+            states.append(download_function(accession, out))
 
-    return all(states)
+    return states
 
 
 class TermParser:
@@ -148,6 +202,14 @@ class TermParser:
         return self.terms
 
 
+def _positive_integer_argument(value):
+    converted = int(value)
+    if converted <= 0:
+        raise ValueError
+
+    return converted
+
+
 if __name__ == "__main__":
     # For debugging use
     # term = 'SRP150545'  #   6 files more than 2-3Gb each
@@ -178,6 +240,13 @@ if __name__ == "__main__":
             "Aspera (a), FTP (f), fasterq_dump (q). By default it is fasterq_dump (q)"
         ),
         default='q',
+    )
+    parser.add_argument(
+        '-c',
+        '--cores',
+        help='Number of CPU cores to utilise (for subcommands that support parallel execution)',
+        default=USABLE_CPUS_COUNT,
+        type=_positive_integer_argument,
     )
     args = parser.parse_args()
 
@@ -218,30 +287,34 @@ if __name__ == "__main__":
 
     terms = TermParser(out_dir).parse_from_input(args.term)
 
-    try:
-        for term in terms:
-            if handle_methods(term, method, out_dir):
-                logging.info("All runs were loaded.")
-    except ValueError as e:
-        logging.error(e)
-        print("Unexpected exit")
-        exit(0)
-    except (
-        requests.exceptions.SSLError,
-        urllib3.exceptions.MaxRetryError,
-        ssl.SSLEOFError,
-    ) as e:
-        logging.error(e)
-        print("Too many requests were made. Exiting system.")
-        exit(0)
-    except requests.exceptions.ConnectionError as e:
-        logging.error(e)
-        print("Incorrect parameters were provided to tool. Try again with correct ones from ENA.")
-        exit(0)
-    except KeyboardInterrupt:
-        print("Session was interrupted!")
-        exit(0)
-    except BaseException as e:
-        logging.error(e)
-        print("Something went wrong! Exiting the system!")
-        exit(0)
+    total_states = []
+    for term in terms:
+        try:
+            total_states.append(handle_methods(term, method, out_dir, core_count=args.cores))
+        except (
+            requests.exceptions.SSLError,
+            urllib3.exceptions.MaxRetryError,
+            ssl.SSLEOFError,
+        ) as e:
+            logging.error(e)
+            print("Too many requests were made. Exiting system.")
+            exit(0)
+        except requests.exceptions.ConnectionError as e:
+            logging.error(e)
+            print(
+                "Incorrect parameters were provided to tool. Try again with correct ones from ENA."
+            )
+            exit(0)
+        except KeyboardInterrupt:
+            print("Session was interrupted!")
+            exit(0)
+        except BaseException as e:
+            logging.error(e)
+            print("Something went wrong! Exiting the system!")
+            exit(0)
+
+    logging.info(
+        "A total of %d runs were successfully loaded and %d failed to load.",
+        len(total_states),
+        total_states.count(False),
+    )
