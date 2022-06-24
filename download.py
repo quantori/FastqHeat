@@ -1,12 +1,14 @@
 import logging
 import os
+import subprocess
+from pathlib import Path
 
 import requests
 
 from study_info.check_result import check_loaded_run, md5_checksum
 
 
-def download_run_fasterq_dump(accession, term, total_spots, out):
+def download_run_fasterq_dump(accession, term, total_spots, output_directory, *, core_count):
 
     """
     Download the run from from NCBI's Sequence Read Archive (SRA)
@@ -32,18 +34,22 @@ def download_run_fasterq_dump(accession, term, total_spots, out):
     bool
         True if run was correctly downloaded, otherwise- False
     """
-    download_bash_command = f"fasterq-dump {accession} -O {out}/{term} -p"
-    logging.debug(download_bash_command)
-    logging.info('Try to download %s file', accession)
-    os.system(download_bash_command)
+    output_directory = Path(output_directory, term)
+    logging.info('Trying to download %s file', accession)
+    subprocess.run(
+        ['fasterq-dump', accession, '-O', output_directory, '-p', '--threads', str(core_count)],
+        check=True,
+    )
     # check completeness of the file and return boolean
     correctness = check_loaded_run(
-        run_accession=accession, path=f"{out}/{term}", needed_lines_cnt=total_spots
+        run_accession=accession, path=output_directory, needed_lines_cnt=total_spots
     )
     if correctness:
-        logging.info("Compressing %s FASTQ file", accession)
-        os.system(f"pigz {term}/{accession}*")
-        logging.info("%s FASTQ file has been zipped", accession)
+        fastq_files = list(output_directory.glob(f'{accession}*.fastq'))
+        logging.info("Compressing FASTQ files for %s in %s", accession, output_directory)
+        subprocess.run(['pigz', '--processes', str(core_count), *fastq_files], check=True)
+        logging.info("FASTQ files for %s have been zipped", accession)
+
     return correctness
 
 

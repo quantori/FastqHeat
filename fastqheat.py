@@ -12,9 +12,21 @@ from study_info.get_sra_study_info import get_run_uid
 
 SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
 SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
+USABLE_CPUS_COUNT = len(os.sched_getaffinity(0))
+
+
+def _positive_integer_argument(value):
+    converted = int(value)
+    if converted <= 0:
+        raise ValueError
+
+    return converted
 
 
 def _handle_f_method(term, out):
+    total_count = 0
+    successful_count = 0
+
     if SRR_PATTERN.search(term):
         accession = term
         success = download_run_ftp(accession, term, out)
@@ -26,6 +38,9 @@ def _handle_f_method(term, out):
                 logging.info("The second try was successful!")
             else:
                 logging.error("Failed the second try. Skipping the %s", accession)
+
+        total_count += 1
+        successful_count += int(success)
 
     elif SRP_PATTERN.search(term):
         accession_list, _ = get_run_uid(term)
@@ -41,8 +56,16 @@ def _handle_f_method(term, out):
                 else:
                     logging.error("Failed the second try. Skipping the %s", accession)
 
+            total_count += 1
+            successful_count += int(success)
+
+    return total_count, successful_count
+
 
 def _handle_a_method(term, out):
+    total_count = 0
+    successful_count = 0
+
     if SRR_PATTERN.search(term):
         accession = term
         success = download_run_aspc(accession, term, out)
@@ -54,6 +77,9 @@ def _handle_a_method(term, out):
                 logging.info("The second try was successful!")
             else:
                 logging.error("Failed the second try. Skipping the %s", accession)
+
+        total_count += 1
+        successful_count += int(success)
 
     if SRP_PATTERN.search(term):
         accession_list, _ = get_run_uid(term)
@@ -69,45 +95,69 @@ def _handle_a_method(term, out):
                 else:
                     logging.error("Failed the second try. Skipping the %s", accession)
 
+            total_count += 1
+            successful_count += int(success)
 
-def _handle_q_method(term, out):
+    return total_count, successful_count
+
+
+def _handle_q_method(term, out, *, core_count):
+    total_count = 0
+    successful_count = 0
+
     if SRR_PATTERN.search(term):
         accession = term
         bash_command = f"https://www.ebi.ac.uk/ena/portal/api/filereport?accession={accession}&result=read_run&fields=read_count&format=json"
         response = requests.get(bash_command)
         total_spots = int(response.json()[0]['read_count'])
-        success = download_run_fasterq_dump(accession, term, total_spots, out)
+        success = download_run_fasterq_dump(
+            accession, term, total_spots, out, core_count=core_count
+        )
 
         if not success:
             logging.warning("Failed to download %s. Trying once more.", accession)
-            success = download_run_fasterq_dump(accession, term, total_spots, out)
+            success = download_run_fasterq_dump(
+                accession, term, total_spots, out, core_count=core_count
+            )
             if success:
                 logging.info("The second try was successful!")
             else:
                 logging.error("Failed the second try. Skipping the %s", accession)
 
+        total_count += 1
+        successful_count += int(success)
+
     if SRP_PATTERN.search(term):
         accession_list, total_spots = get_run_uid(term)
 
         for accession, read_count in zip(accession_list, total_spots):
-            success = download_run_fasterq_dump(accession, term, read_count, out)
+            success = download_run_fasterq_dump(
+                accession, term, read_count, out, core_count=core_count
+            )
 
             if not success:
                 logging.warning("Failed to download %s. Trying once more.", accession)
-                success = download_run_fasterq_dump(accession, term, read_count, out)
+                success = download_run_fasterq_dump(
+                    accession, term, read_count, out, core_count=core_count
+                )
                 if success:
                     logging.info("The second try was successful!")
                 else:
                     logging.error("Failed the second try. Skipping the %s", accession)
 
+            total_count += 1
+            successful_count += int(success)
 
-def handle_methods(term, method, out):
+    return total_count, successful_count
+
+
+def handle_methods(term, method, out, *, core_count):
     if method == "f":
-        _handle_f_method(term, out)
+        return _handle_f_method(term, out)
     elif method == "a":
-        _handle_a_method(term, out)
+        return _handle_a_method(term, out)
     elif method == "q":
-        _handle_q_method(term, out)
+        return _handle_q_method(term, out, core_count=core_count)
 
 
 if __name__ == "__main__":
@@ -170,6 +220,13 @@ if __name__ == "__main__":
         help="Choose different type of methods that should be used for data retrieval: Aspera (a), FTP (f), fasterq_dump (q). By default it is fasterq_dump (q)",
         default='q',
     )
+    parser.add_argument(
+        '-c',
+        '--cores',
+        help='Number of CPU cores to utilise (for subcommands that support parallel execution)',
+        default=USABLE_CPUS_COUNT,
+        type=_positive_integer_argument,
+    )
     args = parser.parse_args()
 
     # choose method type
@@ -224,13 +281,28 @@ if __name__ == "__main__":
             level=args.log_level.upper(), format='[level=%(levelname)s]: %(message)s'
         )
 
+        total_count = 0
+        successful_count = 0
+
         if not terms:
-            handle_methods(term, method, out_dir)
-            logging.info("All runs were loaded.")
+            term_total, term_successful = handle_methods(
+                term, method, out_dir, core_count=args.cores
+            )
+            total_count += term_total
+            successful_count += term_successful
         else:
             for term in terms:
-                handle_methods(term, method, out_dir)
-                logging.info("All runs were loaded.")
+                term_total, term_successful = handle_methods(
+                    term, method, out_dir, core_count=args.cores
+                )
+                total_count += term_total
+                successful_count += term_successful
+
+        logging.info(
+            "A total of %d runs were successfully loaded and %d failed to load.",
+            successful_count,
+            total_count - successful_count,
+        )
     except ValueError as e:
         logging.error(e)
         print("Unexpected exit")
