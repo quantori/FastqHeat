@@ -78,14 +78,14 @@ def download_run_ftp(accession, output_directory, **kwargs):
     ftps, md5s = metadata.get_urls_and_md5s(accession)
 
     for ftp, md5 in zip(ftps, md5s):
-        srr_ids = ftp.split('/')[-1]
-        bash_command = f'mkdir -p {output_directory}/{accession} && curl -L {ftp} -o {output_directory}/{accession}/{srr_ids}'  # noqa: E501 line too long - will be fixed in next PRs
+        srr = ftp.split('/')[-1]
+        bash_command = f'mkdir -p {output_directory}/{accession} && curl -L {ftp} -o {output_directory}/{accession}/{srr}'  # noqa: E501 line too long - will be fixed in next PRs
         logging.debug(bash_command)
-        logging.info('Try to download %s file', srr_ids)
+        logging.info('Try to download %s file', srr)
         # execute command in commandline
         os.system(bash_command)
         # check completeness of the file and return boolean
-        correctness.append(md5_checksum(srr_ids, f"{output_directory}/{term}", md5))
+        correctness.append(md5_checksum(srr, f"{output_directory}/{term}", md5))
 
     if all(correctness):
         logging.info("Current Run: %s has been successfully downloaded", accession)
