@@ -88,27 +88,27 @@ method_to_download_function = {
 }
 
 
-def _make_accession_list(term_: str) -> list[str]:
+def _make_accession_list(term: str) -> list[str]:
     """Get an accession list based on pattern of the given term."""
-    if SRR_PATTERN.search(term_):
-        accession_list = [term_]
-    elif SRP_PATTERN.search(term_):
-        accession_list = metadata.get_srr_ids_from_srp(term_)
+    if SRR_PATTERN.search(term):
+        accession_list = [term]
+    elif SRP_PATTERN.search(term):
+        accession_list = metadata.get_srr_ids_from_srp(term)
     else:
-        raise ValueError(f"Unknown pattern: {term_}")
+        raise ValueError(f"Unknown pattern: {term}")
 
     return accession_list
 
 
-def handle_methods(term_: str, method_: str, out) -> bool:
+def handle_methods(term: str, method: str, out) -> bool:
     """Runs specific download function based on the given method."""
     states = []
     try:
-        download_function = method_to_download_function[method_]
+        download_function = method_to_download_function[method]
     except KeyError:
-        raise ValueError(f"Unknown method: {method_}")
+        raise ValueError(f"Unknown method: {method}")
 
-    accession_list = _make_accession_list(term_)
+    accession_list = _make_accession_list(term)
 
     for accession in accession_list:
         states.append(download_function(accession, out))
