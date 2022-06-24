@@ -1,6 +1,16 @@
 import hashlib
 import logging
-import os
+from pathlib import Path
+
+
+def _count_lines(path, chunk_size=8 * 10**6):
+    # NOTE: actually counts newline characters, like wc -l would
+    count = 0
+    with path.open('rb') as file:
+        for chunk in iter(lambda: file.read(chunk_size), b''):
+            count += chunk.count(b'\n')
+
+    return count
 
 
 def get_info_about_all_loaded_lines(run_accession, path="."):
@@ -18,35 +28,21 @@ def get_info_about_all_loaded_lines(run_accession, path="."):
     -------
     """
 
-    filename = "{}*.fastq".format(run_accession)
-    filename = os.path.join(path, filename)
-
-    wc = "wc -l {}".format(filename)
-    # gunzip -c {} | wc -l
-    entries = os.popen(wc).read()
-
-    entries = entries.strip('\'').split('\n')[:-1]
-
-    # get cnt entries
-    cnt_entries = len(entries)
-
+    fastq_files = list(Path(path).glob(f'{run_accession}*.fastq'))
     rate = None
-    if cnt_entries == 0:
+
+    if not fastq_files:
         logging.error('The %s fastq file is empty or not exists', run_accession)
         exit(0)
-    elif cnt_entries == 1:
+    elif len(fastq_files) == 1:
         logging.debug('we loaded single-stranded read and have not to divide by 2 cnt of lines')
         rate = 1
     else:
-        #  for two-stranded file the output will be:
-        #  537692 SRR7969892_1.fastq\n  537692 SRR7969892_2.fastq\n  1075384 total
         rate = 2
 
-    # get last entry and its value
-    all_lines = entries[cnt_entries - 1].strip().split(' ')[0]
-    logging.debug('All lines in all files of this run: %s', all_lines)
-
-    return rate, int(all_lines)
+    total_lines = sum(map(_count_lines, fastq_files))
+    logging.debug('All lines in all files of this run: %d', total_lines)
+    return rate, total_lines
 
 
 def get_cnt_of_coding_loaded_lines(run_accession, path="."):
@@ -109,31 +105,32 @@ def check_loaded_run(run_accession, path=".", needed_lines_cnt=1):
         return False
 
 
-def md5_checksum(file, out, md5):
+def md5_checksum(path, md5):
     """
     Compare mdh5 hash of file to md5 value retrieved
     from ENA file report
-
     Parameters
     ----------
-    file: str
-            Name of the downloaded Run Accession file
-    out: str
-            path to the directory
+    path: str
+            path to the file
     md5: str
             md5 hash retrieved from ENA file report
     Returns
-    -------
-    bool
-        True if mdh5 hash of file matches md5 value retrieved
+    @@ -128,11 +123,17 @@ def md5_checksum(file, out, md5):
         from ENA file report, othervise False
     """
 
-    md5_hash = hashlib.md5()
     try:
-        with open(f"{out}/{file}", "rb") as f:
-            for byte_block in iter(lambda: f.read(4096), b""):
-                md5_hash.update(byte_block)
-            return md5_hash.hexdigest() == md5
+        file = open(path, "rb")
     except FileNotFoundError:
-        logging.warning(f'{out}/{file} does not exist')
+        logging.warning('%s does not exist', path)
+        return False
+
+    md5_hash = hashlib.md5()
+    chunk_size = md5_hash.block_size * 4_096
+
+    with file as f:
+        for byte_block in iter(lambda: f.read(chunk_size), b""):
+            md5_hash.update(byte_block)
+
+    return md5_hash.hexdigest() == md5

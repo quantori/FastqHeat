@@ -17,8 +17,8 @@ Author: **Anna Ivanova**
 ## How it works
 
 This program takes either an SRA study identifier or run id, *or* a name of a `.txt` file
-containing SRA study identifiers or runs ids on separate lines. It will then delegate
-downloading of the relevant files to `fasterq-dump`, Aspera CLI, or `curl`. This program
+containing SRA study identifiers or runs ids on separate lines. It will then download the
+relevant files directly, or delegate downloading to `fasterq-dump` or Aspera CLI. This program
 will also take care of checksum verification of the downloaded files and retry failed downloads.
 
 ## Compatibility
@@ -43,8 +43,7 @@ command-line utilities, as explained below.
 
 Requires `fasterq-dump` executable installed and added to `PATH`. Consult the
 [SRA Toolkit documentation](https://github.com/ncbi/sra-tools/wiki/HowTo:-Binary-Installation)
-for detailed instructions. After downloading files, this program will verify them with `wc`
-(should be preinstalled on most Linux distributions and macOS) and compress them with
+for detailed instructions. After downloading files, this program will compress them with
 [`pigz`](https://github.com/madler/pigz) (can be installed with `apt` on Debian-based systems).
 
 ### Aspera CLI
@@ -54,7 +53,7 @@ Specifically, this program will invoke the `ascp` executable to transfer files.
 
 ### FTP
 
-Will download files using FTP and `curl`.
+Will download files directly from ENA.
 
 ## CLI
 
