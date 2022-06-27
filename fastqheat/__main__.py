@@ -57,16 +57,10 @@ def download_run_fasterq_dump(accession, output_directory, *, core_count):
     return correctness
 
 
-def _force_ena_http(url):
-    # FTP URLs from ENA do NOT currently include the scheme. Just prepend http://
-    # https://ena-docs.readthedocs.io/en/latest/retrieval/file-download.html
-    return 'http://' + url
-
-
-def _download_file(url, output_file, chunk_size=10**6):
+def _download_file(url, output_file_path, chunk_size=10**6):
     with requests.get(url, stream=True) as response:
         response.raise_for_status()
-        with output_file.open('wb') as file:
+        with output_file_path.open('wb') as file:
             for chunk in response.iter_content(chunk_size):
                 file.write(chunk)
 
@@ -99,7 +93,7 @@ def download_run_ftp(accession, output_directory, **kwargs):
         logging.info('Trying to download %s file', srr)
         file_path = accession_directory / srr
 
-        _download_file(_force_ena_http(ftp), file_path)
+        _download_file(ftp, file_path)
 
         # check completeness of the file
         if not md5_checksum(file_path, md5):

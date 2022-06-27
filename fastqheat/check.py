@@ -116,7 +116,9 @@ def md5_checksum(path, md5):
     md5: str
             md5 hash retrieved from ENA file report
     Returns
-    @@ -128,11 +123,17 @@ def md5_checksum(file, out, md5):
+    -------
+    bool
+        True if mdh5 hash of file matches md5 value retrieved
         from ENA file report, othervise False
     """
 

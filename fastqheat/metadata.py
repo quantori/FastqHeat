@@ -44,7 +44,12 @@ def get_urls_and_md5s(term: str, ftp=False, aspera=False) -> tuple[list[str], li
     url_type = f"fastq_{'ftp' if ftp else 'aspera'}"
 
     md5s = response.json()[0]['fastq_md5'].split(';')
-    urls = response.json()[0][url_type].split(';')
+    if ftp:
+        # FTP URLs from ENA do NOT currently include the scheme. Just prepend http://
+        # https://ena-docs.readthedocs.io/en/latest/retrieval/file-download.html
+        urls = [f"http://{uri}" for uri in response.json()[0][url_type].split(';')]
+    else:
+        urls = response.json()[0][url_type].split(';')
 
     return urls, md5s
 
