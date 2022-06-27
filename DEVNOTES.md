@@ -25,6 +25,7 @@ non-Python dependencies should be documented in [README.md](README.md).
 To check that everything is in order:
 
 ```bash
+~/FastqHeat$ poetry run python -m fastqheat SRP163674 ...  # Run the script
 ~/FastqHeat$ poetry run make format  # Formats code
 ~/FastqHeat$ poetry run make lint  # Runs linters against code
 ~/FastqHeat$ poetry run make test  # Runs unit tests
