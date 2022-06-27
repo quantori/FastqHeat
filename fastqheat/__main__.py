@@ -17,6 +17,44 @@ SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[
 USABLE_CPUS_COUNT = len(os.sched_getaffinity(0))
 
 
+def get_fasterqdump_version():
+    try:
+        result = subprocess.run(
+            ['fasterq-dump', '--version'], text=True, capture_output=True, check=True
+        )
+    except FileNotFoundError:
+        return None
+    except subprocess.CalledProcessError as e:
+        logging.error(e.stderr or e.stdout)
+        raise
+    else:
+        return result.stdout.strip()
+
+
+def get_pigz_version():
+    try:
+        result = subprocess.run(['pigz', '--version'], text=True, capture_output=True, check=True)
+    except FileNotFoundError:
+        return None
+    except subprocess.CalledProcessError as e:
+        logging.error(e.stderr or e.stdout)
+        raise
+    else:
+        return result.stdout.strip()
+
+
+def get_aspera_version():
+    try:
+        result = subprocess.run(['ascp', '--version'], text=True, capture_output=True, check=True)
+    except FileNotFoundError:
+        return None
+    except subprocess.CalledProcessError as e:
+        logging.error(e.stderr or e.stdout)
+        raise
+    else:
+        return result.stdout.strip().splitlines()[0]
+
+
 def download_run_fasterq_dump(accession, output_directory, *, core_count):
     """
     Download the run from NCBI's Sequence Read Archive (SRA)
@@ -259,20 +297,29 @@ if __name__ == "__main__":
         logging.error('Choose any method for data retrieval')
         exit(0)
 
-    try:
-        if method == 'q':
-            fd_version = os.popen("fasterq-dump --version").read()
-            tool = "fasterq+dump"
-        elif method == 'a':
-            fd_version = os.popen("aspera --version").read()
-            tool = "Aspera CLI"
-        else:
-            fd_version = ''
-            tool = ''
-    except IOError as e:
-        logging.error(e)
-        logging.error("SRA Toolkit/Aspera CLI not installed or not pointed in path")
-        exit(0)
+    if method == 'q':
+        fd_version = get_fasterqdump_version()
+        if fd_version is None:
+            logging.error('fasterq-dump (part of SRA Toolkit) is not installed or not on PATH')
+            exit(0)
+
+        pigz_version = get_pigz_version()
+        if pigz_version is None:
+            logging.error('pigz is not installed or not on PATH')
+            exit(0)
+
+        tool = "fasterq+dump"
+    elif method == 'a':
+        fd_version = get_aspera_version()
+        if fd_version is None:
+            logging.error('Aspera CLI is not installed or not on PATH')
+            exit(0)
+
+        tool = "Aspera CLI"
+    else:
+        fd_version = ''
+        tool = ''
+
     parser.add_argument(
         '--version', action='version', version=f'{tool} which use {fd_version} version'
     )
