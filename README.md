@@ -27,12 +27,13 @@ FastqHeat needs Python 3.7 or newer.
 
 ## Installation
 
-Clone the project from GitHub or download it as an archive.
+Clone the project from GitHub or download it as an archive, then install it directly
+with `pip` (consider creating a fresh [virtual environment](https://docs.python.org/3/library/venv.html#creating-virtual-environments) for that). Example:
 
-Currently, the only hard dependency is Python's `requests` module, which is likely already
-installed on your system. If not, you can install it by running `pip install requests`
-(consider creating a fresh [virtual environment](https://docs.python.org/3/library/venv.html#creating-virtual-environments) for that). In the more general case, you can use
-[`poetry`](https://python-poetry.org/) for dependency management (`poetry install --no-dev`).
+```bash
+~$ git clone git@github.com:quantori/FastqHeat.git
+~$ pip install FastqHeat/
+```
 
 Depending on the method you choose for downloading data, you may have to install additional
 command-line utilities, as explained below.
@@ -58,7 +59,7 @@ Will download files directly from ENA.
 ## CLI
 
 ```
-usage: fastqheat.py [-h] [-L {debug,info,warning,error}] [-O OUT] [-M METHOD] [-c CORES] term
+usage: __main__.py [-h] [-L {debug,info,warning,error}] [-O OUT] [-M METHOD] [-c CORES] term
 
 positional arguments:
   term                  The name of SRA Study identifier, looks like SRP... or ERP... or DRP...
@@ -76,24 +77,24 @@ options:
                         Number of CPU cores to utilise (for subcommands that support parallel execution)
 ```
 
-This is also accessible as `fastqheat.py -h/--help`.
+This is also accessible as `python3 -m fastqheat -h/--help`.
 
 ## Examples
 
 ```bash
 # Download SRP163674 data to the current directory using fasterq-dump
-$ python3 fastqheat.py SRP163674
+$ python3 -m fastqheat SRP163674
 # Same, but output files to /tmp instead
-$ python3 fastqheat.py SRP163674 --out /tmp
+$ python3 -m fastqheat SRP163674 --out /tmp
 # Download data related to SRP163674 using FTP
-$ python3 fastqheat.py SRP163674 -M f
+$ python3 -m fastqheat SRP163674 -M f
 # Download data related to SRP163674 using Aspera CLI
-$ python3 fastqheat.py SRP163674 -M a
+$ python3 -m fastqheat SRP163674 -M a
 # Download data for multiple SRA studies from a prepared .txt file using FTP
 $ cat input_file.txt
 SRP163674
 SRP150545
-$ python3 fastqheat.py input_file.txt -M f
+$ python3 -m fastqheat input_file.txt -M f
 ```
 
 ## Development

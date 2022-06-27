@@ -10,11 +10,16 @@ Clone the project, enter the project directory, and switch to the development br
 ~/FastqHeat$ git checkout dev
 ```
 
-Install dependencies with [`poetry`](https://python-poetry.org/):
+Install [`poetry`](https://python-poetry.org/), then install the project:
 
 ```bash
 ~/FastqHeat$ poetry install  # NOTE: includes dev dependencies
 ```
+
+> **NOTE**: to run commands within the project's virtual environment you will have
+> to activate Poetry's shell (`poetry shell`) or run them via `poetry run`. If that
+> sounds too complicated, install the project via `pip` in editable mode (`-e`)
+> instead, and then install project's dependencies with `poetry install --no-root`.
 
 Make sure you've installed optional command-line utilities as well.
 If you add new Python dependencies, they should be included in
