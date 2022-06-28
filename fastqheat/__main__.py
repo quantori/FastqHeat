@@ -1,23 +1,26 @@
 import argparse
 import logging
-import os
+import os.path
+import platform
 import re
 import ssl
 import subprocess
 from pathlib import Path
+from typing import Callable, Optional
 
 import requests
 import urllib3
 
 from fastqheat import metadata
 from fastqheat.check import check_loaded_run, md5_checksum
+from fastqheat.typing_helpers import PathType
 
 SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
 SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
 USABLE_CPUS_COUNT = len(os.sched_getaffinity(0))
 
 
-def get_fasterqdump_version():
+def get_fasterqdump_version() -> Optional[str]:
     try:
         result = subprocess.run(
             ['fasterq-dump', '--version'], text=True, capture_output=True, check=True
@@ -31,7 +34,7 @@ def get_fasterqdump_version():
         return result.stdout.strip()
 
 
-def get_pigz_version():
+def get_pigz_version() -> Optional[str]:
     try:
         result = subprocess.run(['pigz', '--version'], text=True, capture_output=True, check=True)
     except FileNotFoundError:
@@ -43,7 +46,7 @@ def get_pigz_version():
         return result.stdout.strip()
 
 
-def get_aspera_version():
+def get_aspera_version() -> Optional[str]:
     try:
         result = subprocess.run(['ascp', '--version'], text=True, capture_output=True, check=True)
     except FileNotFoundError:
@@ -54,11 +57,12 @@ def get_aspera_version():
     else:
         return result.stdout.strip().splitlines()[0]
 
-
-def download_run_fasterq_dump(accession, output_directory, *, core_count):
+def download_run_fasterq_dump(
+    accession: str, output_directory: PathType, *, core_count: int
+) -> bool:
     """
-    Download the run from NCBI's Sequence Read Archive (SRA)
 
+    Download the run from NCBI's Sequence Read Archive (SRA)
     Uses fasterq_dump and check completeness of downloaded fastq file
     Parameters
     ----------
@@ -74,27 +78,36 @@ def download_run_fasterq_dump(accession, output_directory, *, core_count):
         True if run was correctly downloaded, otherwise - False
     """
     total_spots = metadata.get_read_count(accession)
+    accession_directory = Path(output_directory, accession)
+    accession_directory.mkdir(parents=True, exist_ok=True)
 
-    output_directory = Path(output_directory, term)
     logging.info('Trying to download %s file', accession)
     subprocess.run(
-        ['fasterq-dump', accession, '-O', output_directory, '-p', '--threads', str(core_count)],
+        ['fasterq-dump', accession, '-O', accession_directory, '-p', '--threads', str(core_count)],
         check=True,
     )
     # check completeness of the file and return boolean
     correctness = check_loaded_run(
-        run_accession=accession, path=output_directory, needed_lines_cnt=total_spots
+        run_accession=accession, path=accession_directory, needed_lines_cnt=total_spots
     )
     if correctness:
-        fastq_files = list(output_directory.glob(f'{accession}*.fastq'))
-        logging.info("Compressing FASTQ files for %s in %s", accession, output_directory)
+        fastq_files = list(accession_directory.glob(f'{accession}*.fastq'))
+        logging.info("Compressing FASTQ files for %s in %s", accession, accession_directory)
         subprocess.run(['pigz', '--processes', str(core_count), *fastq_files], check=True)
         logging.info("FASTQ files for %s have been zipped", accession)
 
     return correctness
 
 
-def download_run_ftp(accession, output_directory, **kwargs):
+def _download_file(url: str, output_file_path: Path, chunk_size: int = 10**6) -> None:
+    with requests.get(url, stream=True) as response:
+        response.raise_for_status()
+        with output_file_path.open('wb') as file:
+            for chunk in response.iter_content(chunk_size):
+                file.write(chunk)
+
+
+def download_run_ftp(accession: str, output_directory: PathType) -> bool:
     """
     Download the run from European Nucleotide Archive (ENA)
 
@@ -112,26 +125,43 @@ def download_run_ftp(accession, output_directory, **kwargs):
     bool
         True if run was correctly downloaded, otherwise - False
     """
-    correctness = []
     ftps, md5s = metadata.get_urls_and_md5s(accession)
+    successful = True
+    accession_directory = Path(output_directory, accession)
+    accession_directory.mkdir(parents=True, exist_ok=True)
 
     for ftp, md5 in zip(ftps, md5s):
         srr = ftp.split('/')[-1]
-        bash_command = f'mkdir -p {output_directory}/{accession} && curl -L {ftp} -o {output_directory}/{accession}/{srr}'  # noqa: E501 line too long - will be fixed in next PRs
-        logging.debug(bash_command)
-        logging.info('Try to download %s file', srr)
-        # execute command in commandline
-        os.system(bash_command)
-        # check completeness of the file and return boolean
-        correctness.append(md5_checksum(srr, f"{output_directory}/{term}", md5))
+        logging.info('Trying to download %s file', srr)
+        file_path = accession_directory / srr
 
-    if all(correctness):
+        _download_file(ftp, file_path)
+
+        # check completeness of the file
+        if not md5_checksum(file_path, md5):
+            successful = False
+
+    if successful:
         logging.info("Current Run: %s has been successfully downloaded", accession)
-        return True
-    return False
+
+    return successful
 
 
-def download_run_aspc(accession, output_directory):
+def _get_aspera_private_key_path() -> Path:
+
+    # Based on https://ena-docs.readthedocs.io/en/latest/retrieval/file-download.html
+    if platform.system() == "Windows":
+        return Path(
+            os.path.expandvars(
+                "%userprofile%/AppData/Local/Programs/Aspera"
+                "/Aspera Connect/etc/asperaweb_id_dsa.openssh"
+            )
+        )
+    else:
+        return Path.home() / '.aspera/cli/etc/asperaweb_id_dsa.openssh'
+
+
+def download_run_aspc(accession: str, output_directory: PathType) -> bool:
     """
     Download the run from European Nucleotide Archive (ENA)
 
@@ -148,27 +178,44 @@ def download_run_aspc(accession, output_directory):
     bool
         True if run was correctly downloaded, otherwise - False
     """
-    correctness = []
 
     asperas, md5s = metadata.get_urls_and_md5s(accession)
+    successful = True
+    accession_directory = Path(output_directory, accession)
+    accession_directory.mkdir(parents=True, exist_ok=True)
 
     for aspera, md5 in zip(asperas, md5s):
-        SRR = aspera.split('/')[-1]
-        bash_command = f'ascp -QT -l 300m -P33001 -i $HOME/.aspera/cli/etc/asperaweb_id_dsa.openssh era-fasp@{aspera} . && mkdir -p {output_directory}/{term} && mv {SRR} {output_directory}/{term}'  # noqa: E501 line too long - will be fixed in next PRs
-        logging.debug(bash_command)
-        logging.info('Try to download %s file', SRR)
-        # execute command in commandline
-        os.system(bash_command)
-        # check completeness of the file and return boolean
-        correctness.append(md5_checksum(SRR, f"{output_directory}/{term}", md5))
+        srr = aspera.split('/')[-1]
+        logging.info('Trying to download %s file', srr)
 
-    if all(correctness):
+        subprocess.run(
+            [
+                'ascp',
+                '-QT',
+                '-l',
+                '300m',
+                '-P',
+                '33001',
+                '-i',
+                _get_aspera_private_key_path(),
+                f'era-fasp@{aspera}',
+                Path(),
+            ],
+            check=True,
+        )
+
+        file_path = Path(srr).rename(accession_directory / srr)
+        # check completeness of the file
+        if not md5_checksum(file_path, md5):
+            successful = False
+
+    if successful:
         logging.info("Current Run: %s has been successfully downloaded", accession)
-        return True
-    return False
+
+    return successful
 
 
-method_to_download_function = {
+method_to_download_function: dict[str, Callable[..., bool]] = {
     "f": download_run_ftp,
     "a": download_run_aspc,
     "q": download_run_fasterq_dump,
@@ -187,7 +234,7 @@ def _make_accession_list(term: str) -> list[str]:
     return accession_list
 
 
-def handle_methods(term: str, method: str, out, *, core_count: int) -> bool:
+def handle_methods(term: str, method: str, out: PathType, *, core_count: int) -> list[bool]:
     """Runs specific download function based on the given method."""
 
     states = []
@@ -216,7 +263,7 @@ class TermParser:
     """
 
     def __init__(self, directory: str):
-        self.terms = []
+        self.terms: list[str] = []
         self.directory = directory
 
     @staticmethod
@@ -224,7 +271,7 @@ class TermParser:
         with open(f"{out_dir}/{filename}", "r") as file:
             return [line.strip() for line in file]
 
-    def parse_from_input(self, input_string: str):
+    def parse_from_input(self, input_string: str) -> list[str]:
         if not input_string:
             logging.error('Empty term.')
             raise ValueError
@@ -240,7 +287,7 @@ class TermParser:
         return self.terms
 
 
-def _positive_integer_argument(value):
+def _positive_integer_argument(value: str) -> int:
     converted = int(value)
     if converted <= 0:
         raise ValueError
@@ -258,7 +305,7 @@ if __name__ == "__main__":
         "term",
         help=(
             "The name of SRA Study identifier, looks like SRP... or ERP... or DRP...  "
-            "or .txt file name which includes multiple SRA Study identifiers",
+            "or .txt file name which includes multiple SRA Study identifiers"
         ),
     )
     parser.add_argument(
@@ -337,7 +384,7 @@ if __name__ == "__main__":
     total_states = []
     for term in terms:
         try:
-            total_states.append(handle_methods(term, method, out_dir, core_count=args.cores))
+            total_states.extend(handle_methods(term, method, out_dir, core_count=args.cores))
         except (
             requests.exceptions.SSLError,
             urllib3.exceptions.MaxRetryError,

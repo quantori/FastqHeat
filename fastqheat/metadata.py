@@ -25,7 +25,9 @@ def get_srr_ids_from_srp(term: str) -> list[str]:
         return srr_ids
 
 
-def get_urls_and_md5s(term: str, ftp=False, aspera=False) -> tuple[list[str], list[str]]:
+def get_urls_and_md5s(
+    term: str, ftp: bool = False, aspera: bool = False
+) -> tuple[list[str], list[str]]:
     """
     Returns links and hashes based on the given term
 
@@ -44,7 +46,12 @@ def get_urls_and_md5s(term: str, ftp=False, aspera=False) -> tuple[list[str], li
     url_type = f"fastq_{'ftp' if ftp else 'aspera'}"
 
     md5s = response.json()[0]['fastq_md5'].split(';')
-    urls = response.json()[0][url_type].split(';')
+    if ftp:
+        # FTP URLs from ENA do NOT currently include the scheme. Just prepend http://
+        # https://ena-docs.readthedocs.io/en/latest/retrieval/file-download.html
+        urls = [f"http://{uri}" for uri in response.json()[0][url_type].split(';')]
+    else:
+        urls = response.json()[0][url_type].split(';')
 
     return urls, md5s
 
@@ -58,7 +65,7 @@ def get_read_count(term: str) -> int:
     return total_spots
 
 
-def get_run_check(term: str):
+def get_run_check(term: str) -> tuple[list[str], int]:
     """Returns md5 hashes and total count of a file in order to check if it is okay."""
     url = f"{BASE_URL.format(term)}&fields=fastq_md5,read_count"
     response = requests.get(url)
