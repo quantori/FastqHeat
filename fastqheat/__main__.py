@@ -11,7 +11,7 @@ import requests
 import urllib3
 
 from fastqheat.check import check_loaded_run, md5_checksum
-from fastqheat.eubioit_client import EuBioITClient
+from fastqheat.metadata import EuBioITClient
 
 SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
 SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
