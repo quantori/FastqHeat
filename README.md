@@ -28,7 +28,7 @@ This project supports command line usage. Here's the complete list of supported 
 along with explanation:
 
 ```
-usage: __main__.py [-h] [-L {debug,info,warning,error}] [-O OUT] [-M METHOD] [-c CORES] term
+usage: __main__.py [-h] [-L {debug,info,warning,error}] [-O OUT] [-M METHOD] [-c CORES] [-r RETRIES] term
 
 positional arguments:
   term                  The name of SRA Study identifier, looks like SRP... or ERP... or DRP...
@@ -44,6 +44,8 @@ options:
                         Aspera (a), FTP (f), fasterq_dump (q). By default it is fasterq_dump (q)
   -c CORES, --cores CORES
                         Number of CPU cores to utilise (for subcommands that support parallel execution)
+  -r RETRIES, --retries RETRIES
+                        Retry failed requests this number of times
 ```
 
 This help message is also accessible via `python3 -m fastqheat --help`.
