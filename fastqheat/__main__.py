@@ -57,6 +57,7 @@ def get_aspera_version() -> Optional[str]:
     else:
         return result.stdout.strip().splitlines()[0]
 
+
 def download_run_fasterq_dump(
     accession: str, output_directory: PathType, *, core_count: int
 ) -> bool:
