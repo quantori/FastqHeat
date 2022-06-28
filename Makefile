@@ -9,4 +9,11 @@ format:
 	black . && isort .
 
 lint:
-	black --check . && isort --check . && flake8 .
+	echo "Checking code format with black..."
+	black --check .
+	echo "Checking imports order..."
+	isort --check .
+	echo "Running flake8..."
+	flake8 .
+	echo "Running mypy..."
+	mypy .

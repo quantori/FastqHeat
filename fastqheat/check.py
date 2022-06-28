@@ -2,8 +2,10 @@ import hashlib
 import logging
 from pathlib import Path
 
+from fastqheat.typing_helpers import PathType
 
-def _count_lines(path, chunk_size=8 * 10**6):
+
+def _count_lines(path: Path, chunk_size: int = 8 * 10**6) -> int:
     # NOTE: actually counts newline characters, like wc -l would
     count = 0
     with path.open('rb') as file:
@@ -13,7 +15,7 @@ def _count_lines(path, chunk_size=8 * 10**6):
     return count
 
 
-def get_info_about_all_loaded_lines(run_accession, path="."):
+def get_info_about_all_loaded_lines(run_accession: str, path: PathType = ".") -> tuple[int, int]:
     """
     Count lines in real loaded file(s) and return it
 
@@ -45,7 +47,7 @@ def get_info_about_all_loaded_lines(run_accession, path="."):
     return rate, total_lines
 
 
-def get_cnt_of_coding_loaded_lines(run_accession, path="."):
+def get_cnt_of_coding_loaded_lines(run_accession: str, path: PathType = ".") -> int:
     """
     Get cnt lines in loaded Run files
 
@@ -67,10 +69,10 @@ def get_cnt_of_coding_loaded_lines(run_accession, path="."):
     cnt = (total / rate) / 4
     logging.debug('%d coding lines have been downloaded', cnt)
 
-    return cnt
+    return int(cnt)
 
 
-def check_loaded_run(run_accession, path=".", needed_lines_cnt=1):
+def check_loaded_run(run_accession: str, path: PathType = ".", needed_lines_cnt: int = 1) -> bool:
     """
     Check loaded run by lines in file cnt
 
@@ -105,7 +107,7 @@ def check_loaded_run(run_accession, path=".", needed_lines_cnt=1):
         return False
 
 
-def md5_checksum(path, md5):
+def md5_checksum(path: PathType, md5: str) -> bool:
     """
     Compare mdh5 hash of file to md5 value retrieved
     from ENA file report
