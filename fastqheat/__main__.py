@@ -10,8 +10,8 @@ from pathlib import Path
 import requests
 import urllib3
 
-from fastqheat import metadata
 from fastqheat.check import check_loaded_run, md5_checksum
+from fastqheat.eubioit_client import EuBioITClient
 
 SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
 SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
@@ -36,7 +36,7 @@ def download_run_fasterq_dump(accession, output_directory, *, core_count):
     bool
         True if run was correctly downloaded, otherwise - False
     """
-    total_spots = metadata.get_read_count(accession)
+    total_spots = EuBioITClient().get_read_count(accession)
 
     output_directory = Path(output_directory, term)
     logging.info('Trying to download %s file', accession)
@@ -83,7 +83,7 @@ def download_run_ftp(accession, output_directory, **kwargs):
     bool
         True if run was correctly downloaded, otherwise - False
     """
-    ftps, md5s = metadata.get_urls_and_md5s(accession)
+    ftps, md5s = EuBioITClient().get_urls_and_md5s(accession)
     successful = True
     accession_directory = Path(output_directory, accession)
     accession_directory.mkdir(parents=True, exist_ok=True)
@@ -134,7 +134,7 @@ def download_run_aspc(accession, output_directory):
         True if run was correctly downloaded, otherwise - False
     """
 
-    asperas, md5s = metadata.get_urls_and_md5s(accession)
+    asperas, md5s = EuBioITClient().get_urls_and_md5s(accession)
     successful = True
     accession_directory = Path(output_directory, accession)
     accession_directory.mkdir(parents=True, exist_ok=True)
@@ -182,7 +182,7 @@ def _make_accession_list(term: str) -> list[str]:
     if SRR_PATTERN.search(term):
         accession_list = [term]
     elif SRP_PATTERN.search(term):
-        accession_list = metadata.get_srr_ids_from_srp(term)
+        accession_list = EuBioITClient().get_srr_ids_from_srp(term)
     else:
         raise ValueError(f"Unknown pattern: {term}")
 
