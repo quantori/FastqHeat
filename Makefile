@@ -17,3 +17,5 @@ lint:
 	flake8 .
 	echo "Running mypy..."
 	mypy .
+	echo "Running safety..."
+	safety check --bare --full-report
