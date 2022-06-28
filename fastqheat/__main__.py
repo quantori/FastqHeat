@@ -10,7 +10,6 @@ from typing import Callable, Optional
 import requests
 import urllib3
 
-from fastqheat import metadata
 from fastqheat.check import check_loaded_run, md5_checksum
 from fastqheat.config import config
 from fastqheat.typing_helpers import PathType
