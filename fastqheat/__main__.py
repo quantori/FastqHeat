@@ -6,11 +6,14 @@ import re
 import ssl
 import subprocess
 from pathlib import Path
+from typing import Any
 
+import backoff
 import requests
 import urllib3
 
 from fastqheat.check import check_loaded_run, md5_checksum
+from fastqheat.config import get_settings, set_settings
 from fastqheat.metadata import ENAClient
 
 SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
@@ -18,6 +21,16 @@ SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[
 USABLE_CPUS_COUNT = len(os.sched_getaffinity(0))
 
 
+@backoff.on_exception(
+    backoff.constant,
+    subprocess.CalledProcessError,
+    max_tries=lambda: get_settings().max_retries,
+)
+def _run_command(args: Any) -> None:
+    subprocess.run(args, check=True)
+
+
+@backoff.on_predicate(backoff.constant, max_tries=lambda: get_settings().max_retries)
 def download_run_fasterq_dump(accession, output_directory, *, core_count):
     """
     Download the run from NCBI's Sequence Read Archive (SRA)
@@ -40,9 +53,8 @@ def download_run_fasterq_dump(accession, output_directory, *, core_count):
 
     output_directory = Path(output_directory, term)
     logging.info('Trying to download %s file', accession)
-    subprocess.run(
+    _run_command(
         ['fasterq-dump', accession, '-O', output_directory, '-p', '--threads', str(core_count)],
-        check=True,
     )
     # check completeness of the file and return boolean
     correctness = check_loaded_run(
@@ -57,6 +69,11 @@ def download_run_fasterq_dump(accession, output_directory, *, core_count):
     return correctness
 
 
+@backoff.on_exception(
+    backoff.constant,
+    requests.exceptions.RequestException,
+    max_tries=lambda: get_settings().max_retries,
+)
 def _download_file(url, output_file_path, chunk_size=10**6):
     with requests.get(url, stream=True) as response:
         response.raise_for_status()
@@ -65,6 +82,7 @@ def _download_file(url, output_file_path, chunk_size=10**6):
                 file.write(chunk)
 
 
+@backoff.on_predicate(backoff.constant, max_tries=lambda: get_settings().max_retries)
 def download_run_ftp(accession, output_directory, **kwargs):
     """
     Download the run from European Nucleotide Archive (ENA)
@@ -116,6 +134,7 @@ def _get_aspera_private_key_path():
         return Path.home() / '.aspera/cli/etc/asperaweb_id_dsa.openssh'
 
 
+@backoff.on_predicate(backoff.constant, max_tries=lambda: get_settings().max_retries)
 def download_run_aspc(accession, output_directory):
     """
     Download the run from European Nucleotide Archive (ENA)
@@ -143,7 +162,7 @@ def download_run_aspc(accession, output_directory):
         srr = aspera.split('/')[-1]
         logging.info('Trying to download %s file', srr)
 
-        subprocess.run(
+        _run_command(
             [
                 'ascp',
                 '-QT',
@@ -155,8 +174,7 @@ def download_run_aspc(accession, output_directory):
                 _get_aspera_private_key_path(),
                 f'era-fasp@{aspera}',
                 Path(),
-            ],
-            check=True,
+            ]
         )
 
         file_path = Path(srr).rename(accession_directory / srr)
@@ -288,7 +306,15 @@ if __name__ == "__main__":
         default=USABLE_CPUS_COUNT,
         type=_positive_integer_argument,
     )
+    parser.add_argument(
+        '-r',
+        '--retries',
+        help='Retry failed requests this number of times',
+        type=_positive_integer_argument,
+    )
     args = parser.parse_args()
+
+    set_settings(max_retries=args.retries)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s:%(levelname)s:%(name)s:%(message)s")
 

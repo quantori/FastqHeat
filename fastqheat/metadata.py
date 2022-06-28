@@ -1,6 +1,9 @@
 import typing as tp
 
+import backoff
 import requests
+
+from fastqheat.config import get_settings
 
 
 class ENAClient:
@@ -73,6 +76,11 @@ class ENAClient:
 
         return md5s, total_spots
 
+    @backoff.on_exception(
+        backoff.constant,
+        requests.exceptions.RequestException,
+        max_tries=lambda: get_settings().max_retries,
+    )
     def _get(self, params: tp.Dict[str, str]):
         """General get method."""
         response = requests.get(url=self._base_url, params=params)
