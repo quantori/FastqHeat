@@ -1,6 +1,7 @@
 import argparse
 import logging
-import os
+import os.path
+import platform
 import re
 import ssl
 import subprocess
@@ -56,6 +57,14 @@ def download_run_fasterq_dump(accession, output_directory, *, core_count):
     return correctness
 
 
+def _download_file(url, output_file_path, chunk_size=10**6):
+    with requests.get(url, stream=True) as response:
+        response.raise_for_status()
+        with output_file_path.open('wb') as file:
+            for chunk in response.iter_content(chunk_size):
+                file.write(chunk)
+
+
 def download_run_ftp(accession, output_directory, **kwargs):
     """
     Download the run from European Nucleotide Archive (ENA)
@@ -74,23 +83,37 @@ def download_run_ftp(accession, output_directory, **kwargs):
     bool
         True if run was correctly downloaded, otherwise - False
     """
-    correctness = []
     ftps, md5s = metadata.get_urls_and_md5s(accession)
+    successful = True
+    accession_directory = Path(output_directory, accession)
+    accession_directory.mkdir(parents=True, exist_ok=True)
 
     for ftp, md5 in zip(ftps, md5s):
         srr = ftp.split('/')[-1]
-        bash_command = f'mkdir -p {output_directory}/{accession} && curl -L {ftp} -o {output_directory}/{accession}/{srr}'  # noqa: E501 line too long - will be fixed in next PRs
-        logging.debug(bash_command)
-        logging.info('Try to download %s file', srr)
-        # execute command in commandline
-        os.system(bash_command)
-        # check completeness of the file and return boolean
-        correctness.append(md5_checksum(srr, f"{output_directory}/{term}", md5))
+        logging.info('Trying to download %s file', srr)
+        file_path = accession_directory / srr
 
-    if all(correctness):
+        _download_file(ftp, file_path)
+
+        # check completeness of the file
+        if not md5_checksum(file_path, md5):
+            successful = False
+
+    if successful:
         logging.info("Current Run: %s has been successfully downloaded", accession)
-        return True
-    return False
+
+    return successful
+
+
+def _get_aspera_private_key_path():
+    # Based on https://ena-docs.readthedocs.io/en/latest/retrieval/file-download.html
+    if platform.system() == "Windows":
+        return os.path.expandvars(
+            "%userprofile%/AppData/Local/Programs/Aspera"
+            "/Aspera Connect/etc/asperaweb_id_dsa.openssh"
+        )
+    else:
+        return Path.home() / '.aspera/cli/etc/asperaweb_id_dsa.openssh'
 
 
 def download_run_aspc(accession, output_directory):
@@ -110,24 +133,41 @@ def download_run_aspc(accession, output_directory):
     bool
         True if run was correctly downloaded, otherwise - False
     """
-    correctness = []
 
     asperas, md5s = metadata.get_urls_and_md5s(accession)
+    successful = True
+    accession_directory = Path(output_directory, accession)
+    accession_directory.mkdir(parents=True, exist_ok=True)
 
     for aspera, md5 in zip(asperas, md5s):
-        SRR = aspera.split('/')[-1]
-        bash_command = f'ascp -QT -l 300m -P33001 -i $HOME/.aspera/cli/etc/asperaweb_id_dsa.openssh era-fasp@{aspera} . && mkdir -p {output_directory}/{term} && mv {SRR} {output_directory}/{term}'  # noqa: E501 line too long - will be fixed in next PRs
-        logging.debug(bash_command)
-        logging.info('Try to download %s file', SRR)
-        # execute command in commandline
-        os.system(bash_command)
-        # check completeness of the file and return boolean
-        correctness.append(md5_checksum(SRR, f"{output_directory}/{term}", md5))
+        srr = aspera.split('/')[-1]
+        logging.info('Trying to download %s file', srr)
 
-    if all(correctness):
+        subprocess.run(
+            [
+                'ascp',
+                '-QT',
+                '-l',
+                '300m',
+                '-P',
+                '33001',
+                '-i',
+                _get_aspera_private_key_path(),
+                f'era-fasp@{aspera}',
+                Path(),
+            ],
+            check=True,
+        )
+
+        file_path = Path(srr).rename(accession_directory / srr)
+        # check completeness of the file
+        if not md5_checksum(file_path, md5):
+            successful = False
+
+    if successful:
         logging.info("Current Run: %s has been successfully downloaded", accession)
-        return True
-    return False
+
+    return successful
 
 
 method_to_download_function = {
