@@ -7,6 +7,7 @@ import subprocess
 import typing as tp
 from pathlib import Path
 
+import backoff
 import requests
 import urllib3
 
@@ -37,6 +38,13 @@ def get_program_version(program_name: str) -> tp.Optional[str]:
             return output.splitlines()[0]
         return output
 
+@backoff.on_exception(
+    backoff.constant,
+    subprocess.CalledProcessError,
+    max_tries=lambda: config.MAX_RETRIES,
+)
+def _run_command(args: tp.Any) -> None:
+    subprocess.run(args, check=True)
 
 def download_run_fasterq_dump(
     accession: str, output_directory: PathType, *, core_count: int
@@ -63,9 +71,8 @@ def download_run_fasterq_dump(
     accession_directory.mkdir(parents=True, exist_ok=True)
 
     logging.info('Trying to download %s file', accession)
-    subprocess.run(
+    _run_command(
         ['fasterq-dump', accession, '-O', accession_directory, '-p', '--threads', str(core_count)],
-        check=True,
     )
     # check completeness of the file and return boolean
     correctness = check_loaded_run(
@@ -79,7 +86,11 @@ def download_run_fasterq_dump(
 
     return correctness
 
-
+@backoff.on_exception(
+    backoff.constant,
+    requests.exceptions.RequestException,
+    max_tries=lambda: config.MAX_RETRIES,
+)
 def _download_file(url: str, output_file_path: Path, chunk_size: int = 10**6) -> None:
     with requests.get(url, stream=True) as response:
         response.raise_for_status()
@@ -87,7 +98,7 @@ def _download_file(url: str, output_file_path: Path, chunk_size: int = 10**6) ->
             for chunk in response.iter_content(chunk_size):
                 file.write(chunk)
 
-
+@backoff.on_predicate(backoff.constant, max_tries=lambda: config.MAX_RETRIES)
 def download_run_ftp(accession: str, output_directory: PathType) -> bool:
     """
     Download the run from European Nucleotide Archive (ENA)
@@ -155,7 +166,7 @@ def download_run_aspc(accession: str, output_directory: PathType) -> bool:
         srr = aspera.split('/')[-1]
         logging.info('Trying to download %s file', srr)
 
-        subprocess.run(
+        _run_command(
             [
                 'ascp',
                 '-QT',
@@ -167,8 +178,7 @@ def download_run_aspc(accession: str, output_directory: PathType) -> bool:
                 config.PATH_TO_ASPERA_KEY,
                 f'era-fasp@{aspera}',
                 Path(),
-            ],
-            check=True,
+            ]
         )
 
         file_path = Path(srr).rename(accession_directory / srr)
@@ -300,8 +310,15 @@ if __name__ == "__main__":
         default=USABLE_CPUS_COUNT,
         type=_positive_integer_argument,
     )
+    parser.add_argument(
+        '-r',
+        '--retries',
+        help='Retry failed requests this number of times',
+        type=_positive_integer_argument,
+    )
     args = parser.parse_args()
 
+    config.MAX_RETRIES = args.retries
     logging.basicConfig(level=logging.INFO, format="%(asctime)s:%(levelname)s:%(name)s:%(message)s")
 
     # choose method type
