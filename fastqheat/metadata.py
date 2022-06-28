@@ -3,9 +3,9 @@ import typing as tp
 import requests
 
 
-class EuBioITClient:
+class ENAClient:
     """
-    Client to work with European Bioinformatics Institute public API.
+    Client to work with European Nucleotide Archive public API.
 
     Swagger: https://www.ebi.ac.uk/ena/portal/api/
     """
