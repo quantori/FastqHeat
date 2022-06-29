@@ -22,7 +22,10 @@ try:
     USABLE_CPUS_COUNT = len(os.sched_getaffinity(0))
 except AttributeError:
     # sched_getaffinity is not available on this OS, fall back to cpu_count
-    USABLE_CPUS_COUNT = os.cpu_count()
+    if (cpu_count := os.cpu_count()) is not None:
+        USABLE_CPUS_COUNT = cpu_count
+    else:
+        USABLE_CPUS_COUNT = 4
 
 
 def download_run_fasterq_dump(
