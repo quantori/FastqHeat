@@ -23,7 +23,7 @@ will also take care of checksum verification of the downloaded files and retry f
 
 ## Compatibility
 
-FastqHeat needs Python 3.7 or newer.
+FastqHeat needs Python 3.9.
 
 ## Installation
 
