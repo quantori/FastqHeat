@@ -21,6 +21,9 @@ SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
 SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
 USABLE_CPUS_COUNT = get_cpu_cores_count()
 
+subprocess_run = backoff.on_exception(
+    backoff.constant, subprocess.CalledProcessError, max_tries=lambda: get_settings().max_retries
+)(subprocess.run)
 
 def get_program_version(program_name: str) -> tp.Optional[str]:
     try:
@@ -166,7 +169,7 @@ def download_run_aspc(accession: str, output_directory: PathType) -> bool:
         srr = aspera.split('/')[-1]
         logging.info('Trying to download %s file', srr)
 
-        _run_command(
+        subprocess_run(
             [
                 'ascp',
                 '-QT',
@@ -178,7 +181,8 @@ def download_run_aspc(accession: str, output_directory: PathType) -> bool:
                 config.PATH_TO_ASPERA_KEY,
                 f'era-fasp@{aspera}',
                 Path(),
-            ]
+            ],
+            check=True,
         )
 
         file_path = Path(srr).rename(accession_directory / srr)
