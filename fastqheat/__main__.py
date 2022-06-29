@@ -6,7 +6,6 @@ import re
 import ssl
 import subprocess
 from pathlib import Path
-from typing import Any
 
 import backoff
 import requests
@@ -20,14 +19,9 @@ SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
 SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
 USABLE_CPUS_COUNT = len(os.sched_getaffinity(0))
 
-
-@backoff.on_exception(
-    backoff.constant,
-    subprocess.CalledProcessError,
-    max_tries=lambda: get_settings().max_retries,
-)
-def _run_command(args: Any) -> None:
-    subprocess.run(args, check=True)
+subprocess_run = backoff.on_exception(
+    backoff.constant, subprocess.CalledProcessError, max_tries=lambda: get_settings().max_retries
+)(subprocess.run)
 
 
 @backoff.on_predicate(backoff.constant, max_tries=lambda: get_settings().max_retries)
@@ -53,8 +47,9 @@ def download_run_fasterq_dump(accession, output_directory, *, core_count):
 
     output_directory = Path(output_directory, term)
     logging.info('Trying to download %s file', accession)
-    _run_command(
+    subprocess_run(
         ['fasterq-dump', accession, '-O', output_directory, '-p', '--threads', str(core_count)],
+        check=True,
     )
     # check completeness of the file and return boolean
     correctness = check_loaded_run(
@@ -162,7 +157,7 @@ def download_run_aspc(accession, output_directory):
         srr = aspera.split('/')[-1]
         logging.info('Trying to download %s file', srr)
 
-        _run_command(
+        subprocess_run(
             [
                 'ascp',
                 '-QT',
@@ -174,7 +169,8 @@ def download_run_aspc(accession, output_directory):
                 _get_aspera_private_key_path(),
                 f'era-fasp@{aspera}',
                 Path(),
-            ]
+            ],
+            check=True,
         )
 
         file_path = Path(srr).rename(accession_directory / srr)

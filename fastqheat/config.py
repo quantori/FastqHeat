@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from functools import cache
 from typing import Optional
 
 
@@ -16,6 +15,5 @@ def set_settings(*, max_retries: Optional[int] = None) -> None:
         _config.max_retries = max_retries
 
 
-@cache
 def get_settings() -> Config:
     return _config
