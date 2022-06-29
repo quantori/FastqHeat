@@ -17,7 +17,12 @@ from fastqheat.typing_helpers import PathType
 
 SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
 SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
-USABLE_CPUS_COUNT = len(os.sched_getaffinity(0))
+
+try:
+    USABLE_CPUS_COUNT = len(os.sched_getaffinity(0))
+except AttributeError:
+    # sched_getaffinity is not available on this OS, fall back to cpu_count
+    USABLE_CPUS_COUNT = os.cpu_count()
 
 
 def download_run_fasterq_dump(
