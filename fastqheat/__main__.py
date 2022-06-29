@@ -88,7 +88,7 @@ def download_run_ftp(accession: str, output_directory: PathType) -> bool:
     bool
         True if run was correctly downloaded, otherwise - False
     """
-    ftps, md5s = metadata.get_urls_and_md5s(accession)
+    ftps, md5s = metadata.get_urls_and_md5s(accession, ftp=True)
     successful = True
     accession_directory = Path(output_directory, accession)
     accession_directory.mkdir(parents=True, exist_ok=True)
@@ -142,7 +142,7 @@ def download_run_aspc(accession: str, output_directory: PathType) -> bool:
         True if run was correctly downloaded, otherwise - False
     """
 
-    asperas, md5s = metadata.get_urls_and_md5s(accession)
+    asperas, md5s = metadata.get_urls_and_md5s(accession, aspera=True)
     successful = True
     accession_directory = Path(output_directory, accession)
     accession_directory.mkdir(parents=True, exist_ok=True)
