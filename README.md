@@ -130,6 +130,8 @@ FastqHeat will download files and create the following directory structure:
     └── SRR7969880.fastq.gz
 ```
 
+Note that the directory structure will always be exactly the same, regardless of the method
+you selected.
 
 ### Download data for a single SRP via fasterq-dump
 
