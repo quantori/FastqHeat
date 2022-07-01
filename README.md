@@ -179,7 +179,7 @@ $ python3 -m fastqheat SRP163674 -M f --out /tmp
 $ python3 -m fastqheat SRR7969880 -M f -O /tmp
 ```
 
-### Download data for multiple SRA studies
+### Download data for multiple SRR or SRP identifiers
 
 Create a `.txt` file containing SRA study identifiers or runs ids. Each identifier should be
 placed on a separate line. Example of a valid file:
