@@ -14,18 +14,11 @@ import urllib3
 from fastqheat import metadata
 from fastqheat.check import check_loaded_run, md5_checksum
 from fastqheat.typing_helpers import PathType
+from fastqheat.utility import get_cpu_cores_count
 
 SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
 SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
-
-try:
-    USABLE_CPUS_COUNT = len(os.sched_getaffinity(0))
-except AttributeError:
-    # sched_getaffinity is not available on this OS, fall back to cpu_count
-    if (cpu_count := os.cpu_count()) is not None:
-        USABLE_CPUS_COUNT = cpu_count
-    else:
-        USABLE_CPUS_COUNT = 4
+USABLE_CPUS_COUNT = get_cpu_cores_count()
 
 
 def download_run_fasterq_dump(
