@@ -231,7 +231,7 @@ class TermParser:
 
     @staticmethod
     def _parse_terms_from_file(filename: str) -> list[str]:
-        with open(f"{out_dir}/{filename}", "r") as file:
+        with open(filename, "r") as file:
             return [line.strip() for line in file]
 
     def parse_from_input(self, input_string: str) -> list[str]:
