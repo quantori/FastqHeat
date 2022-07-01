@@ -160,7 +160,7 @@ $ python3 -m fastqheat SRP163674 -M a --out /tmp
 
 ```bash
 # Download data for SRR7969880 to /tmp
-$ python3 -m fastqheat SRR7969880 -O /tmp
+$ python3 -m fastqheat SRR7969880 -M a -O /tmp
 ```
 
 ### Download data for a single SRP using FTP
