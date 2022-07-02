@@ -16,8 +16,8 @@ Author: **Anna Ivanova**
 
 ## How it works
 
-This program takes either an SRA study identifier or run id, *or* a name of a `.txt` file
-containing SRA study identifiers or runs ids on separate lines. It will then download the
+This program takes either an SRA study identifier or run id, *or* path to a `.txt` file
+that contains SRA study identifiers or runs ids on separate lines. It will then download the
 relevant files directly, or delegate downloading to `fasterq-dump` or Aspera CLI. This program
 will also take care of checksum verification of the downloaded files and retry failed downloads.
 
@@ -53,7 +53,7 @@ FastqHeat is being developed and tested under Python 3.9.x.
 
 ## Installation
 
- 1. [Make sure you have Python installed](https://www.python.org/downloads/).
+ 1. [Make sure you have installed a supported version of Python](https://www.python.org/downloads/).
 
  2. Clone this project from GitHub or download it as an archive.
 
@@ -85,8 +85,8 @@ for detailed instructions. After downloading files, FastqHeat will compress them
 [`pigz`](https://github.com/madler/pigz) (can be installed with `apt` on Debian-based systems).
 
 Both `fasterq-dump` and `pigz` support parallel execution and it's enabled by default. The `-c`/`--cores`
-argument (see #CLI-usage) controls exactly how many threads those programs will spawn. The default number
-of threads is equal to the numbers of logical CPUs in the system.
+argument (see [CLI usage](#cli-usage)) controls exactly how many threads those programs will spawn.
+The default number of threads is equal to the number of logical CPUs in the system.
 
 ### Aspera CLI
 
@@ -99,11 +99,11 @@ FastqHeat will download files directly from ENA.
 
 ## Using FastqHeat
 
-For every SRP given, FastqHeat will download data for all runs and place them in a specific
-hierarchical directory structure.
+For every study or run given, FastqHeat will download data for all runs and place them in
+a specific hierarchical directory structure.
 
 For example, if you wish to download data for `SRP163674` to `/some/output/directory`,
-FastqHeat will download files and create the following directory structure:
+FastqHeat will arrange downloaded files for runs in the following directory structure:
 
 ```
 /some/output/directory/
@@ -117,12 +117,19 @@ FastqHeat will download files and create the following directory structure:
 │ └── SRR7969883.fastq.gz
 ├── SRR7969884
 │ └── SRR7969884.fastq.gz
-├── SRR7969885
 ...
 ```
 
-If instead you wish to download data just for `SRR7969880` and save it to `/some/output/directory`,
-FastqHeat will download files and create the following directory structure:
+Here's an example for `SRX4720625`:
+
+```
+/some/output/directory/
+└── SRR7882015
+  ├── SRR7882015_1.fastq.gz
+  └── SRR7882015_2.fastq.gz
+```
+
+If instead you download data just for `SRR7969880`:
 
 ```
 /some/output/directory/
@@ -145,7 +152,8 @@ $ python3 -m fastqheat SRP163674 --out /tmp
 ### Download data for a single SRR via fasterq-dump
 
 ```bash
-# Set the number of cores to use by fasterq-dump and pigz, overriding the default setting
+# Download data for SRR7969880 to the current directory. Sets the number of cores
+# to use by fasterq-dump and pigz, overriding the default setting
 $ python3 -m fastqheat SRR7969880 --cores 8
 ```
 
@@ -165,7 +173,7 @@ $ python3 -m fastqheat SRP163674 -M a --out /tmp
 $ python3 -m fastqheat SRR7969880 -M a -O /tmp
 ```
 
-### Download data for a single SRP using FTP
+### Download data for a single SRP via FTP
 
 ```bash
 # Download data related to SRP163674 to the current directory using FTP
@@ -174,7 +182,7 @@ $ python3 -m fastqheat SRP163674 -M f
 $ python3 -m fastqheat SRP163674 -M f --out /tmp
 ```
 
-### Download data for a single SRR using FTP
+### Download data for a single SRR via FTP
 
 ```bash
 # Download data for SRR7969880 to /tmp
@@ -183,17 +191,18 @@ $ python3 -m fastqheat SRR7969880 -M f -O /tmp
 
 ### Download data for multiple SRR or SRP identifiers
 
-Create a `.txt` file containing SRA study identifiers or runs ids. Each identifier should be
+Create a `.txt` file containing identifiers of SRA studies or runs. Each identifier should be
 placed on a separate line. Example of a valid file:
 
 ```bash
 $ cat /path/to/input_file.txt
 SRP163674
+SRX4720625
 SRP150545
 ```
 
 Provide the path to this file as the first command line argument. Other command line arguments
-have the same meaning as for single-identifier downloads:
+have the same meaning as for downloads by a single identifier:
 
 ```bash
 # Download data for every entry in input_file.txt using fasterq-dump with 6 threads
