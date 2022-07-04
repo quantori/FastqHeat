@@ -6,7 +6,7 @@ import re
 import ssl
 import subprocess
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
 
 import requests
 import urllib3
@@ -18,6 +18,23 @@ from fastqheat.typing_helpers import PathType
 SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
 SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
 USABLE_CPUS_COUNT = len(os.sched_getaffinity(0))
+
+
+def get_program_version(program_name: str) -> Optional[str]:
+    try:
+        result = subprocess.run(
+            [program_name, '--version'], text=True, capture_output=True, check=True
+        )
+    except FileNotFoundError:
+        return None
+    except subprocess.CalledProcessError as e:
+        logging.error(e.stderr or e.stdout)
+        raise
+    else:
+        output = result.stdout.strip()
+        if program_name == 'ascp':
+            return output.splitlines()[0]
+        return output
 
 
 def download_run_fasterq_dump(
@@ -307,20 +324,29 @@ if __name__ == "__main__":
         logging.error('Choose any method for data retrieval')
         exit(0)
 
-    try:
-        if method == 'q':
-            fd_version = os.popen("fasterq-dump --version").read()
-            tool = "fasterq+dump"
-        elif method == 'a':
-            fd_version = os.popen("aspera --version").read()
-            tool = "Aspera CLI"
-        else:
-            fd_version = ''
-            tool = ''
-    except IOError as e:
-        logging.error(e)
-        logging.error("SRA Toolkit/Aspera CLI not installed or not pointed in path")
-        exit(0)
+    if method == 'q':
+        fd_version = get_program_version('fasterq-dump')
+        if fd_version is None:
+            logging.error('fasterq-dump (part of SRA Toolkit) is not installed or not on PATH')
+            exit(0)
+
+        pigz_version = get_program_version('pigz')
+        if pigz_version is None:
+            logging.error('pigz is not installed or not on PATH')
+            exit(0)
+
+        tool = "fasterq+dump"
+    elif method == 'a':
+        fd_version = get_program_version('ascp')
+        if fd_version is None:
+            logging.error('Aspera CLI is not installed or not on PATH')
+            exit(0)
+
+        tool = "Aspera CLI"
+    else:
+        fd_version = ''
+        tool = ''
+
     parser.add_argument(
         '--version', action='version', version=f'{tool} which use {fd_version} version'
     )
