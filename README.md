@@ -85,7 +85,7 @@ for detailed instructions. After downloading files, FastqHeat will compress them
 [`pigz`](https://github.com/madler/pigz) (can be installed with `apt` on Debian-based systems).
 
 Both `fasterq-dump` and `pigz` support parallel execution and it's enabled by default. The `-c`/`--cores`
-argument (see [CLI usage](#cli-usage)) controls exactly how many threads those programs will spawn.
+argument (see [CLI usage](#cli-usage)) controls exactly how many threads these programs will spawn.
 The default number of threads is equal to the number of logical CPUs in the system.
 
 ### Aspera CLI
