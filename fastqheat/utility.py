@@ -10,5 +10,5 @@ def get_cpu_cores_count() -> int:
             return cpu_count
         else:
             # For now we only use it to pass to fasterq-dump and to pigz external utilities.
-            # pigz uses 8 threads by default. fasterq-dump uses 6, so 4 feels like a nice safe option
+            # pigz uses 8 threads by default. fasterq-dump uses 6, so 4 feels like a safe option
             return 4
