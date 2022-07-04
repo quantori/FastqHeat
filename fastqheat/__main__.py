@@ -20,10 +20,10 @@ SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[
 USABLE_CPUS_COUNT = len(os.sched_getaffinity(0))
 
 
-def get_fasterqdump_version() -> Optional[str]:
+def get_program_version(program_name: str) -> Optional[str]:
     try:
         result = subprocess.run(
-            ['fasterq-dump', '--version'], text=True, capture_output=True, check=True
+            [program_name, '--version'], text=True, capture_output=True, check=True
         )
     except FileNotFoundError:
         return None
@@ -31,31 +31,10 @@ def get_fasterqdump_version() -> Optional[str]:
         logging.error(e.stderr or e.stdout)
         raise
     else:
-        return result.stdout.strip()
-
-
-def get_pigz_version() -> Optional[str]:
-    try:
-        result = subprocess.run(['pigz', '--version'], text=True, capture_output=True, check=True)
-    except FileNotFoundError:
-        return None
-    except subprocess.CalledProcessError as e:
-        logging.error(e.stderr or e.stdout)
-        raise
-    else:
-        return result.stdout.strip()
-
-
-def get_aspera_version() -> Optional[str]:
-    try:
-        result = subprocess.run(['ascp', '--version'], text=True, capture_output=True, check=True)
-    except FileNotFoundError:
-        return None
-    except subprocess.CalledProcessError as e:
-        logging.error(e.stderr or e.stdout)
-        raise
-    else:
-        return result.stdout.strip().splitlines()[0]
+        output = result.stdout.strip()
+        if program_name == 'ascp':
+            return output.splitlines()[0]
+        return output
 
 
 def download_run_fasterq_dump(
@@ -346,19 +325,19 @@ if __name__ == "__main__":
         exit(0)
 
     if method == 'q':
-        fd_version = get_fasterqdump_version()
+        fd_version = get_program_version('fasterq-dump')
         if fd_version is None:
             logging.error('fasterq-dump (part of SRA Toolkit) is not installed or not on PATH')
             exit(0)
 
-        pigz_version = get_pigz_version()
+        pigz_version = get_program_version('pigz')
         if pigz_version is None:
             logging.error('pigz is not installed or not on PATH')
             exit(0)
 
         tool = "fasterq+dump"
     elif method == 'a':
-        fd_version = get_aspera_version()
+        fd_version = get_program_version('ascp')
         if fd_version is None:
             logging.error('Aspera CLI is not installed or not on PATH')
             exit(0)
