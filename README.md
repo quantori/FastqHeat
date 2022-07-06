@@ -5,7 +5,7 @@
 
 Copyright © 2021 [Quantori](https://www.quantori.com/). Custom Software Solutions. All rights reserved.
 
-This program (wrapper) was created to help to download metagenomic data from
+This program (wrapper) was created to help to download data from
 [SRA database](https://www.ncbi.nlm.nih.gov/sra/).
 It uses one of the three different methods to download data depending on user's choice:
 **fasterq-dump** to download runs from NCBI's Sequence Read Archive (SRA), **FTP** or
@@ -19,7 +19,8 @@ Author: **Anna Ivanova**
 This program takes either an SRA study identifier or run id, *or* path to a `.txt` file
 that contains SRA study identifiers or runs ids on separate lines. It will then download the
 relevant files directly, or delegate downloading to `fasterq-dump` or Aspera CLI. This program
-will also take care of checksum verification of the downloaded files and retry failed downloads.
+will also take care of obtaining required metadata, verify checksums of the downloaded files,
+and retry failed downloads.
 
 ## CLI usage
 
@@ -88,15 +89,29 @@ Both `fasterq-dump` and `pigz` support parallel execution and it's enabled by de
 argument (see [CLI usage](#cli-usage)) controls exactly how many threads these programs will spawn.
 The default number of threads is equal to the number of logical CPUs in the system.
 
+Refer to the following sections for usage examples:
+ - [Download data for a single SRP via fasterq-dump](#download-data-for-a-single-srp-via-fasterq-dump)
+ - [Download data for a single SRR via fasterq-dump](#download-data-for-a-single-srr-via-fasterq-dump)
+
 ### Aspera CLI
 
 Requires that you have [Aspera CLI](https://www.ibm.com/docs/en/aci/3.9.2?topic=aspera-command-line-interface-user-guide-linux) installed and added to your `PATH`.
 Specifically, FastqHeat will invoke the `ascp` executable to transfer files.
 
+Refer to the following sections for usage examples:
+
+ - [Download data for a single SRP via Aspera CLI](#download-data-for-a-single-srp-via-aspera-cli)
+ - [Download data for a single SRR via Aspera CLI](#download-data-for-a-single-srr-via-aspera-cli)
+ 
 ### FTP
 
 FastqHeat will download files directly from ENA.
 
+Refer to the following sections for usage examples:
+
+ - [Download data for a single SRP via FTP](#download-data-for-a-single-srp-via-ftp)
+ - [Download data for a single SRR via FTP](#download-data-for-a-single-srr-via-ftp)
+ 
 ## Using FastqHeat
 
 For every study or run given, FastqHeat will download data for all runs and place them in
