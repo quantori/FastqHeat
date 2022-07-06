@@ -90,6 +90,7 @@ argument (see [CLI usage](#cli-usage)) controls exactly how many threads these p
 The default number of threads is equal to the number of logical CPUs in the system.
 
 Refer to the following sections for usage examples:
+
  - [Download data for a single SRP via fasterq-dump](#download-data-for-a-single-srp-via-fasterq-dump)
  - [Download data for a single SRR via fasterq-dump](#download-data-for-a-single-srr-via-fasterq-dump)
 
