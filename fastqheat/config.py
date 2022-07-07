@@ -15,7 +15,7 @@ _config = Config()
 
 
 def set_settings(
-    *, max_retries: Optional[int] = None, aspera_private_key_path: Optional[str] = None
+    *, max_retries: Optional[int] = None, aspera_private_key_path: Optional[PathLike] = None
 ) -> None:
     if max_retries is not None:
         _config.max_retries = max_retries
