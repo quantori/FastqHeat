@@ -1,7 +1,6 @@
 import argparse
 import logging
 import os.path
-import platform
 import re
 import ssl
 import subprocess
@@ -118,17 +117,6 @@ def download_run_ftp(accession, output_directory, **kwargs):
     return successful
 
 
-def _get_aspera_private_key_path():
-    # Based on https://ena-docs.readthedocs.io/en/latest/retrieval/file-download.html
-    if platform.system() == "Windows":
-        return os.path.expandvars(
-            "%userprofile%/AppData/Local/Programs/Aspera"
-            "/Aspera Connect/etc/asperaweb_id_dsa.openssh"
-        )
-    else:
-        return Path.home() / '.aspera/cli/etc/asperaweb_id_dsa.openssh'
-
-
 @backoff.on_predicate(backoff.constant, max_tries=lambda: get_settings().max_retries)
 def download_run_aspc(accession, output_directory):
     """
@@ -166,7 +154,7 @@ def download_run_aspc(accession, output_directory):
                 '-P',
                 '33001',
                 '-i',
-                _get_aspera_private_key_path(),
+                get_settings().aspera_private_key_path,
                 f'era-fasp@{aspera}',
                 Path(),
             ],
