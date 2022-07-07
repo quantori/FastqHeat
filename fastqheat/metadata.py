@@ -2,6 +2,8 @@ import typing as tp
 
 import requests
 
+from fastqheat import typing_helpers as th
+
 
 class ENAClient:
     """
@@ -10,7 +12,7 @@ class ENAClient:
     Swagger: https://www.ebi.ac.uk/ena/portal/api/
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._base_url = "https://www.ebi.ac.uk/ena/portal/api/filereport"
         self._query_params = {"result": "read_run", "format": "json"}
 
@@ -73,7 +75,7 @@ class ENAClient:
 
         return md5s, total_spots
 
-    def _get(self, params: tp.Dict[str, str]):
+    def _get(self, params: tp.Dict[str, str]) -> list[th.JsonDict]:
         """General get method."""
         response = requests.get(url=self._base_url, params=params)
         response.raise_for_status()

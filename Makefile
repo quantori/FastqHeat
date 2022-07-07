@@ -18,4 +18,4 @@ lint:
 	echo "Running mypy..."
 	mypy .
 	echo "Running safety..."
-	safety check --bare --full-report
+	safety check --full-report
