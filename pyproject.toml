@@ -20,6 +20,7 @@ flake8 = "^4.0.1"
 mypy = "0.961"
 types-requests = "^2.27.31"
 safety = "^1.10.3"
+pytest-mock = "^3.8.2"
 
 [tool.black]
 line-length = 100
