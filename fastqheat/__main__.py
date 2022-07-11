@@ -1,7 +1,6 @@
 import argparse
 import logging
 import os.path
-import platform
 import re
 import ssl
 import subprocess
@@ -12,8 +11,8 @@ import requests
 import urllib3
 
 from fastqheat.check import check_loaded_run, md5_checksum
-from fastqheat.metadata import ENAClient
 from fastqheat.config import config
+from fastqheat.metadata import ENAClient
 from fastqheat.typing_helpers import PathType
 from fastqheat.utility import get_cpu_cores_count
 
