@@ -4,7 +4,7 @@ import backoff
 import requests
 
 from fastqheat import typing_helpers as th
-from fastqheat.config import get_settings
+from fastqheat.config import config
 
 
 class ENAClient:
@@ -80,7 +80,7 @@ class ENAClient:
     @backoff.on_exception(
         backoff.constant,
         requests.exceptions.RequestException,
-        max_tries=lambda: get_settings().MAX_RETRIES,
+        max_tries=lambda: config.MAX_RETRIES,
     )
     def _get(self, params: tp.Dict[str, str]) -> list[th.JsonDict]:
         """General get method."""

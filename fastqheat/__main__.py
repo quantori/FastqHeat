@@ -22,7 +22,7 @@ SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[
 USABLE_CPUS_COUNT = get_cpu_cores_count()
 
 subprocess_run = backoff.on_exception(
-    backoff.constant, subprocess.CalledProcessError, max_tries=lambda: get_settings().max_retries
+    backoff.constant, subprocess.CalledProcessError, max_tries=lambda: config.MAX_RETRIES
 )(subprocess.run)
 
 
@@ -52,7 +52,7 @@ def _run_command(args: tp.Any) -> None:
     subprocess.run(args, check=True)
 
 
-@backoff.on_predicate(backoff.constant, max_tries=lambda: config.max_retries)
+@backoff.on_predicate(backoff.constant, max_tries=lambda: config.MAX_RETRIES)
 def download_run_fasterq_dump(
     accession: str, output_directory: PathType, *, core_count: int
 ) -> bool:
@@ -105,6 +105,7 @@ def _download_file(url: str, output_file_path: Path, chunk_size: int = 10**6) ->
         with output_file_path.open('wb') as file:
             for chunk in response.iter_content(chunk_size):
                 file.write(chunk)
+
 
 @backoff.on_predicate(backoff.constant, max_tries=lambda: config.MAX_RETRIES)
 def download_run_ftp(accession: str, output_directory: PathType) -> bool:
