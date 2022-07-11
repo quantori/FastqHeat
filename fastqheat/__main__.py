@@ -25,6 +25,7 @@ subprocess_run = backoff.on_exception(
     backoff.constant, subprocess.CalledProcessError, max_tries=lambda: get_settings().max_retries
 )(subprocess.run)
 
+
 def get_program_version(program_name: str) -> tp.Optional[str]:
     try:
         result = subprocess.run(
@@ -41,6 +42,7 @@ def get_program_version(program_name: str) -> tp.Optional[str]:
             return output.splitlines()[0]
         return output
 
+
 @backoff.on_exception(
     backoff.constant,
     subprocess.CalledProcessError,
@@ -49,6 +51,8 @@ def get_program_version(program_name: str) -> tp.Optional[str]:
 def _run_command(args: tp.Any) -> None:
     subprocess.run(args, check=True)
 
+
+@backoff.on_predicate(backoff.constant, max_tries=lambda: config.max_retries)
 def download_run_fasterq_dump(
     accession: str, output_directory: PathType, *, core_count: int
 ) -> bool:
@@ -88,6 +92,7 @@ def download_run_fasterq_dump(
         logging.info("FASTQ files for %s have been zipped", accession)
 
     return correctness
+
 
 @backoff.on_exception(
     backoff.constant,

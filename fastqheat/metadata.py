@@ -3,9 +3,8 @@ import typing as tp
 import backoff
 import requests
 
-from fastqheat.config import get_settings
-
 from fastqheat import typing_helpers as th
+from fastqheat.config import get_settings
 
 
 class ENAClient:
