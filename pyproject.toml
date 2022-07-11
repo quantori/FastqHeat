@@ -1,3 +1,6 @@
+[tool.setuptools.package-data]
+fastqheat = ["asperaweb_id_dsa.openssh"]
+
 [tool.poetry]
 name = "FastqHeat"
 version = "0.0.1"

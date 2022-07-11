@@ -1,7 +1,6 @@
 import argparse
 import logging
 import os.path
-import platform
 import re
 import ssl
 import subprocess
@@ -13,6 +12,7 @@ import urllib3
 
 from fastqheat import metadata
 from fastqheat.check import check_loaded_run, md5_checksum
+from fastqheat.config import config
 from fastqheat.typing_helpers import PathType
 from fastqheat.utility import get_cpu_cores_count
 
@@ -128,20 +128,6 @@ def download_run_ftp(accession: str, output_directory: PathType) -> bool:
     return successful
 
 
-def _get_aspera_private_key_path() -> Path:
-
-    # Based on https://ena-docs.readthedocs.io/en/latest/retrieval/file-download.html
-    if platform.system() == "Windows":
-        return Path(
-            os.path.expandvars(
-                "%userprofile%/AppData/Local/Programs/Aspera"
-                "/Aspera Connect/etc/asperaweb_id_dsa.openssh"
-            )
-        )
-    else:
-        return Path.home() / '.aspera/cli/etc/asperaweb_id_dsa.openssh'
-
-
 def download_run_aspc(accession: str, output_directory: PathType) -> bool:
     """
     Download the run from European Nucleotide Archive (ENA)
@@ -178,7 +164,7 @@ def download_run_aspc(accession: str, output_directory: PathType) -> bool:
                 '-P',
                 '33001',
                 '-i',
-                _get_aspera_private_key_path(),
+                config.PATH_TO_ASPERA_KEY,
                 f'era-fasp@{aspera}',
                 Path(),
             ],
