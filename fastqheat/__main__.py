@@ -43,15 +43,6 @@ def get_program_version(program_name: str) -> tp.Optional[str]:
         return output
 
 
-@backoff.on_exception(
-    backoff.constant,
-    subprocess.CalledProcessError,
-    max_tries=lambda: config.MAX_RETRIES,
-)
-def _run_command(args: tp.Any) -> None:
-    subprocess.run(args, check=True)
-
-
 @backoff.on_predicate(backoff.constant, max_tries=lambda: config.MAX_RETRIES)
 def download_run_fasterq_dump(
     accession: str, output_directory: PathType, *, core_count: int
@@ -78,8 +69,9 @@ def download_run_fasterq_dump(
     accession_directory.mkdir(parents=True, exist_ok=True)
 
     logging.info('Trying to download %s file', accession)
-    _run_command(
+    subprocess_run(
         ['fasterq-dump', accession, '-O', accession_directory, '-p', '--threads', str(core_count)],
+        check=True,
     )
     # check completeness of the file and return boolean
     correctness = check_loaded_run(
