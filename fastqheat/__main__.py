@@ -10,9 +10,9 @@ from typing import Callable, Optional
 import requests
 import urllib3
 
-from fastqheat import metadata
 from fastqheat.check import check_loaded_run, md5_checksum
 from fastqheat.config import config
+from fastqheat.metadata import ENAClient
 from fastqheat.typing_helpers import PathType
 from fastqheat.utility import get_cpu_cores_count
 
@@ -58,7 +58,7 @@ def download_run_fasterq_dump(
     bool
         True if run was correctly downloaded, otherwise - False
     """
-    total_spots = metadata.get_read_count(accession)
+    total_spots = ENAClient().get_read_count(accession)
     accession_directory = Path(output_directory, accession)
     accession_directory.mkdir(parents=True, exist_ok=True)
 
@@ -106,7 +106,7 @@ def download_run_ftp(accession: str, output_directory: PathType) -> bool:
     bool
         True if run was correctly downloaded, otherwise - False
     """
-    ftps, md5s = metadata.get_urls_and_md5s(accession, ftp=True)
+    ftps, md5s = ENAClient().get_urls_and_md5s(accession, ftp=True)
     successful = True
     accession_directory = Path(output_directory, accession)
     accession_directory.mkdir(parents=True, exist_ok=True)
@@ -146,7 +146,7 @@ def download_run_aspc(accession: str, output_directory: PathType) -> bool:
         True if run was correctly downloaded, otherwise - False
     """
 
-    asperas, md5s = metadata.get_urls_and_md5s(accession, aspera=True)
+    asperas, md5s = ENAClient().get_urls_and_md5s(accession, aspera=True)
     successful = True
     accession_directory = Path(output_directory, accession)
     accession_directory.mkdir(parents=True, exist_ok=True)
@@ -194,7 +194,7 @@ def _make_accession_list(term: str) -> list[str]:
     if SRR_PATTERN.search(term):
         accession_list = [term]
     elif SRP_PATTERN.search(term):
-        accession_list = metadata.get_srr_ids_from_srp(term)
+        accession_list = ENAClient().get_srr_ids_from_srp(term)
     else:
         raise ValueError(f"Unknown pattern: {term}")
 
