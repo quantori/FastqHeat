@@ -81,7 +81,7 @@ class ENAClient:
     @backoff.on_exception(
         backoff.constant,
         exception=RequestException,
-        max_tries=lambda: config.MAX_RETRIES,
+        max_tries=lambda: config.MAX_ATTEMPTS,
     )
     def _get(self, params: tp.Dict[str, str]) -> list[th.JsonDict]:
         """General get method."""

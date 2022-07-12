@@ -22,7 +22,7 @@ SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[
 USABLE_CPUS_COUNT = get_cpu_cores_count()
 
 subprocess_run = backoff.on_exception(
-    backoff.constant, subprocess.CalledProcessError, max_tries=lambda: config.MAX_RETRIES
+    backoff.constant, subprocess.CalledProcessError, max_tries=lambda: config.MAX_ATTEMPTS
 )(subprocess.run)
 
 
@@ -88,7 +88,7 @@ def download_run_fasterq_dump(
 @backoff.on_exception(
     backoff.constant,
     requests.exceptions.RequestException,
-    max_tries=lambda: config.MAX_RETRIES,
+    max_tries=lambda: config.MAX_ATTEMPTS,
 )
 def _download_file(url: str, output_file_path: Path, chunk_size: int = 10**6) -> None:
     with requests.get(url, stream=True) as response:
@@ -311,14 +311,14 @@ if __name__ == "__main__":
         type=_positive_integer_argument,
     )
     parser.add_argument(
-        '-r',
-        '--retries',
-        help='Retry failed requests this number of times',
+        '-a',
+        '--attempts',
+        help='Try to download files this number of times (to prevent crashing on network errors)',
         type=_positive_integer_argument,
     )
     args = parser.parse_args()
 
-    config.MAX_RETRIES = args.retries + 1  # because it is actually number of TRIES
+    config.MAX_ATTEMPTS = args.attempts
     logging.basicConfig(level=logging.INFO, format="%(asctime)s:%(levelname)s:%(name)s:%(message)s")
 
     # choose method type

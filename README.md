@@ -44,8 +44,8 @@ options:
                         Aspera (a), FTP (f), fasterq_dump (q). By default it is fasterq_dump (q)
   -c CORES, --cores CORES
                         Number of CPU cores to utilise (for subcommands that support parallel execution)
-  -r RETRIES, --retries RETRIES
-                        Retry failed requests this number of times
+  -a ATTEMPTS, --attempts ATTEMPTS
+                        Number of attempts to download files (two by default)
 ```
 
 This help message is also accessible via `python3 -m fastqheat --help`.

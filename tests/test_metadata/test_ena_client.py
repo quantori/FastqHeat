@@ -144,9 +144,9 @@ def test_get_run_check(mocker):
 
 
 def test_backoff_on_get(mocker):
-    """Tests if ENAClient._get() method tries once again on RequestError."""
+    """Tests if ENAClient._get() method attempts once again on RequestError."""
 
-    config.MAX_RETRIES = 2
+    config.MAX_ATTEMPTS = 2
     mock = mocker.patch.object(
         requests, "get", side_effect=[RequestException("whatever"), MockResponse(status=200)]
     )  # first time raises an error, second time executes successfully
@@ -154,4 +154,4 @@ def test_backoff_on_get(mocker):
     ena_client = ENAClient()
     ena_client._get(params={"whatever": ""})
 
-    assert mock.call_count == config.MAX_RETRIES
+    assert mock.call_count == config.MAX_ATTEMPTS
