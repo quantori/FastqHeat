@@ -2,6 +2,7 @@ import typing as tp
 
 import backoff
 import requests
+from requests.exceptions import RequestException
 
 from fastqheat import typing_helpers as th
 from fastqheat.config import config
@@ -79,7 +80,7 @@ class ENAClient:
 
     @backoff.on_exception(
         backoff.constant,
-        requests.exceptions.RequestException,
+        exception=RequestException,
         max_tries=lambda: config.MAX_RETRIES,
     )
     def _get(self, params: tp.Dict[str, str]) -> list[th.JsonDict]:

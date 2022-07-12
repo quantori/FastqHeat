@@ -43,7 +43,6 @@ def get_program_version(program_name: str) -> tp.Optional[str]:
         return output
 
 
-@backoff.on_predicate(backoff.constant, max_tries=lambda: config.MAX_RETRIES)
 def download_run_fasterq_dump(
     accession: str, output_directory: PathType, *, core_count: int
 ) -> bool:
@@ -99,7 +98,6 @@ def _download_file(url: str, output_file_path: Path, chunk_size: int = 10**6) ->
                 file.write(chunk)
 
 
-@backoff.on_predicate(backoff.constant, max_tries=lambda: config.MAX_RETRIES)
 def download_run_ftp(accession: str, output_directory: PathType) -> bool:
     """
     Download the run from European Nucleotide Archive (ENA)
@@ -320,7 +318,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    config.MAX_RETRIES = args.retries
+    config.MAX_RETRIES = args.retries + 1  # because it is actually number of TRIES
     logging.basicConfig(level=logging.INFO, format="%(asctime)s:%(levelname)s:%(name)s:%(message)s")
 
     # choose method type
