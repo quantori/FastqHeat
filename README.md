@@ -28,7 +28,7 @@ This project supports command line usage. Here's the complete list of supported 
 along with explanation:
 
 ```
-usage: __main__.py [-h] [-L {debug,info,warning,error}] [-O OUT] [-M METHOD] [-c CORES] [-r RETRIES] term
+usage: __main__.py [-h] [-L {debug,info,warning,error}] [-O OUT] [-M METHOD] [-c CORES] [-a ATTEMPTS] term
 
 positional arguments:
   term                  The name of SRA Study identifier, looks like SRP... or ERP... or DRP...
