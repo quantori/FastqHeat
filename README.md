@@ -45,7 +45,7 @@ options:
   -c CORES, --cores CORES
                         Number of CPU cores to utilise (for subcommands that support parallel execution)
   -a ATTEMPTS, --attempts ATTEMPTS
-                        Number of attempts to download files (two by default)
+                        Number of attempts to download files
 ```
 
 This help message is also accessible via `python3 -m fastqheat --help`.
