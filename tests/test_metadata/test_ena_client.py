@@ -144,7 +144,7 @@ def test_get_run_check(mocker):
 
 
 def test_backoff_on_get(mocker):
-    """Tests if ENAClient._get() method attempts once again on RequestError."""
+    """Tests if ENAClient._get() retries on RequestError."""
 
     config.MAX_ATTEMPTS = 2
     mock = mocker.patch.object(
