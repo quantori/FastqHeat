@@ -4,9 +4,10 @@ import os.path
 import re
 import ssl
 import subprocess
+import typing as tp
 from pathlib import Path
-from typing import Callable, Optional
 
+import backoff
 import requests
 import urllib3
 
@@ -20,8 +21,12 @@ SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
 SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
 USABLE_CPUS_COUNT = get_cpu_cores_count()
 
+subprocess_run = backoff.on_exception(
+    backoff.constant, subprocess.CalledProcessError, max_tries=lambda: config.MAX_ATTEMPTS
+)(subprocess.run)
 
-def get_program_version(program_name: str) -> Optional[str]:
+
+def get_program_version(program_name: str) -> tp.Optional[str]:
     try:
         result = subprocess.run(
             [program_name, '--version'], text=True, capture_output=True, check=True
@@ -63,7 +68,7 @@ def download_run_fasterq_dump(
     accession_directory.mkdir(parents=True, exist_ok=True)
 
     logging.info('Trying to download %s file', accession)
-    subprocess.run(
+    subprocess_run(
         ['fasterq-dump', accession, '-O', accession_directory, '-p', '--threads', str(core_count)],
         check=True,
     )
@@ -80,6 +85,11 @@ def download_run_fasterq_dump(
     return correctness
 
 
+@backoff.on_exception(
+    backoff.constant,
+    requests.exceptions.RequestException,
+    max_tries=lambda: config.MAX_ATTEMPTS,
+)
 def _download_file(url: str, output_file_path: Path, chunk_size: int = 10**6) -> None:
     with requests.get(url, stream=True) as response:
         response.raise_for_status()
@@ -155,7 +165,7 @@ def download_run_aspc(accession: str, output_directory: PathType) -> bool:
         srr = aspera.split('/')[-1]
         logging.info('Trying to download %s file', srr)
 
-        subprocess.run(
+        subprocess_run(
             [
                 'ascp',
                 '-QT',
@@ -182,7 +192,7 @@ def download_run_aspc(accession: str, output_directory: PathType) -> bool:
     return successful
 
 
-method_to_download_function: dict[str, Callable[..., bool]] = {
+method_to_download_function: dict[str, tp.Callable[..., bool]] = {
     "f": download_run_ftp,
     "a": download_run_aspc,
     "q": download_run_fasterq_dump,
@@ -300,8 +310,15 @@ if __name__ == "__main__":
         default=USABLE_CPUS_COUNT,
         type=_positive_integer_argument,
     )
+    parser.add_argument(
+        '-a',
+        '--attempts',
+        help='Try to download files this number of times (to prevent crashing on network errors)',
+        type=_positive_integer_argument,
+    )
     args = parser.parse_args()
 
+    config.MAX_ATTEMPTS = args.attempts
     logging.basicConfig(level=logging.INFO, format="%(asctime)s:%(levelname)s:%(name)s:%(message)s")
 
     # choose method type

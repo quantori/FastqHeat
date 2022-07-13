@@ -1,8 +1,11 @@
 import typing as tp
 
+import backoff
 import requests
+from requests.exceptions import RequestException
 
 from fastqheat import typing_helpers as th
+from fastqheat.config import config
 
 
 class ENAClient:
@@ -75,6 +78,11 @@ class ENAClient:
 
         return md5s, total_spots
 
+    @backoff.on_exception(
+        backoff.constant,
+        exception=RequestException,
+        max_tries=lambda: config.MAX_ATTEMPTS,
+    )
     def _get(self, params: tp.Dict[str, str]) -> list[th.JsonDict]:
         """General get method."""
         response = requests.get(url=self._base_url, params=params)
