@@ -103,7 +103,6 @@ def _get_cnt_of_coding_loaded_lines(
     cnt = (total_lines / rate) / 4
     logger.debug('%d coding lines have been downloaded', cnt)
 
-
     return int(cnt)
 
 
