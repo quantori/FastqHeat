@@ -5,15 +5,13 @@ import re
 import ssl
 import subprocess
 import typing as tp
-from pathlib import Path
 
 import backoff
 import requests
 import urllib3
 
-from fastqheat.check import check_loaded_run, md5_checksum
 from fastqheat.config import config
-from fastqheat.metadata import ENAClient
+from fastqheat.ena.ena_api_client import ENAClient
 from fastqheat.typing_helpers import PathType
 from fastqheat.utility import get_cpu_cores_count
 
@@ -43,160 +41,11 @@ def get_program_version(program_name: str) -> tp.Optional[str]:
         return output
 
 
-def download_run_fasterq_dump(
-    accession: str, output_directory: PathType, *, core_count: int
-) -> bool:
-    """
-
-    Download the run from NCBI's Sequence Read Archive (SRA)
-    Uses fasterq_dump and check completeness of downloaded fastq file
-    Parameters
-    ----------
-    accession: str
-        a string of Study Accession
-    output_directory: str
-        The output directory
-    core_count: int
-        Number of cores to utilize
-    Returns
-    -------
-    bool
-        True if run was correctly downloaded, otherwise - False
-    """
-    total_spots = ENAClient().get_read_count(accession)
-    accession_directory = Path(output_directory, accession)
-    accession_directory.mkdir(parents=True, exist_ok=True)
-
-    logging.info('Trying to download %s file', accession)
-    subprocess_run(
-        ['fasterq-dump', accession, '-O', accession_directory, '-p', '--threads', str(core_count)],
-        check=True,
-    )
-    # check completeness of the file and return boolean
-    correctness = check_loaded_run(
-        run_accession=accession, path=accession_directory, needed_lines_cnt=total_spots
-    )
-    if correctness:
-        fastq_files = list(accession_directory.glob(f'{accession}*.fastq'))
-        logging.info("Compressing FASTQ files for %s in %s", accession, accession_directory)
-        subprocess.run(['pigz', '--processes', str(core_count), *fastq_files], check=True)
-        logging.info("FASTQ files for %s have been zipped", accession)
-
-    return correctness
-
-
-@backoff.on_exception(
-    backoff.constant,
-    requests.exceptions.RequestException,
-    max_tries=lambda: config.MAX_ATTEMPTS,
-)
-def _download_file(url: str, output_file_path: Path, chunk_size: int = 10**6) -> None:
-    with requests.get(url, stream=True) as response:
-        response.raise_for_status()
-        with output_file_path.open('wb') as file:
-            for chunk in response.iter_content(chunk_size):
-                file.write(chunk)
-
-
-def download_run_ftp(accession: str, output_directory: PathType) -> bool:
-    """
-    Download the run from European Nucleotide Archive (ENA)
-
-    Users FTP and checks completeness of downloaded gunzipped fastq file
-
-    Parameters
-    ----------
-    accession: str
-        a string of Study Accession
-
-    output_directory: str
-        The output directory
-    Returns
-    -------
-    bool
-        True if run was correctly downloaded, otherwise - False
-    """
-    ftps, md5s = ENAClient().get_urls_and_md5s(accession, ftp=True)
-    successful = True
-    accession_directory = Path(output_directory, accession)
-    accession_directory.mkdir(parents=True, exist_ok=True)
-
-    for ftp, md5 in zip(ftps, md5s):
-        srr = ftp.split('/')[-1]
-        logging.info('Trying to download %s file', srr)
-        file_path = accession_directory / srr
-
-        _download_file(ftp, file_path)
-
-        # check completeness of the file
-        if not md5_checksum(file_path, md5):
-            successful = False
-
-    if successful:
-        logging.info("Current Run: %s has been successfully downloaded", accession)
-
-    return successful
-
-
-def download_run_aspc(accession: str, output_directory: PathType) -> bool:
-    """
-    Download the run from European Nucleotide Archive (ENA)
-
-    Uses Aspera and checks completeness of downloaded gunzipped fastq file
-
-    Parameters
-    ----------
-    accession: str
-        a string of Study Accession
-    output_directory: str
-            The output directory
-    Returns
-    -------
-    bool
-        True if run was correctly downloaded, otherwise - False
-    """
-
-    asperas, md5s = ENAClient().get_urls_and_md5s(accession, aspera=True)
-    successful = True
-    accession_directory = Path(output_directory, accession)
-    accession_directory.mkdir(parents=True, exist_ok=True)
-
-    for aspera, md5 in zip(asperas, md5s):
-        srr = aspera.split('/')[-1]
-        logging.info('Trying to download %s file', srr)
-
-        subprocess_run(
-            [
-                'ascp',
-                '-QT',
-                '-l',
-                '300m',
-                '-P',
-                '33001',
-                '-i',
-                config.PATH_TO_ASPERA_KEY,
-                f'era-fasp@{aspera}',
-                Path(),
-            ],
-            check=True,
-        )
-
-        file_path = Path(srr).rename(accession_directory / srr)
-        # check completeness of the file
-        if not md5_checksum(file_path, md5):
-            successful = False
-
-    if successful:
-        logging.info("Current Run: %s has been successfully downloaded", accession)
-
-    return successful
-
-
-method_to_download_function: dict[str, tp.Callable[..., bool]] = {
-    "f": download_run_ftp,
-    "a": download_run_aspc,
-    "q": download_run_fasterq_dump,
-}
+# method_to_download_function: dict[str, tp.Callable[..., bool]] = {
+#     "f": download_run_ftp,
+#     "a": download_run_aspc,
+#     "q": download_run_fasterq_dump,
+# }
 
 
 def _make_accession_list(term: str) -> list[str]:

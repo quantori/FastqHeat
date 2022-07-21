@@ -3,7 +3,7 @@ import requests
 from requests.exceptions import RequestException
 
 from fastqheat.config import config
-from fastqheat.metadata import ENAClient
+from fastqheat.ena.metadata import ENAClient
 from tests.fixtures import MockResponse
 
 accession_response = [
@@ -146,12 +146,11 @@ def test_get_run_check(mocker):
 def test_backoff_on_get(mocker):
     """Tests if ENAClient._get() retries on RequestError."""
 
-    config.MAX_ATTEMPTS = 2
     mock = mocker.patch.object(
         requests, "get", side_effect=[RequestException("whatever"), MockResponse(status=200)]
     )  # first time raises an error, second time executes successfully
 
-    ena_client = ENAClient()
+    ena_client = ENAClient(attempts=2)
     ena_client._get(params={"whatever": ""})
 
     assert mock.call_count == config.MAX_ATTEMPTS
