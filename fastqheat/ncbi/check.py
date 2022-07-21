@@ -103,7 +103,6 @@ def _get_cnt_of_coding_loaded_lines(
     cnt = (total_lines / rate) / 4
     logger.debug('%d coding lines have been downloaded', cnt)
 
-    logger.debug('Removing unzipped temporary files...')
 
     return int(cnt)
 
@@ -162,7 +161,7 @@ class FilesToCheck:
     def __exit__(self, *args: tp.Any, **kwargs: tp.Any) -> None:
         if self.zipped:
             fastq_files = list(self.path.glob(f'{self.accession}*.fastq'))
-            # remove temporary unzipped files
+            logger.debug('Removing unzipped temporary files...')
             for file in fastq_files:
                 file.unlink()
 
