@@ -60,14 +60,20 @@ def _make_accession_list(term: str) -> list[str]:
     return accession_list
 
 
-def handle_methods(term: str, method: str, out: PathType, *, core_count: int) -> list[bool]:
+def download_function(*args: tp.Any, **kwargs: tp.Any) -> bool:
+    return True
+
+
+def handle_methods(term: str, method: str, out: PathType, *, core_count: int) -> list:
     """Runs specific download function based on the given method."""
 
     states = []
-    try:
-        download_function = method_to_download_function[method]
-    except KeyError:
-        raise ValueError(f"Unknown method: {method}")
+    # try:
+    #     download_function = method_to_download_function[
+    #         method
+    #     ]
+    # except KeyError:
+    #     raise ValueError(f"Unknown method: {method}")
 
     accession_list = _make_accession_list(term)
 

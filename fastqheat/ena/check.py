@@ -16,9 +16,9 @@ def md5_checksum(file_path: th.PathType, md5: str) -> bool:
     Parameters
     ----------
     file_path: str
-            path to the file
+        path to the file
     md5: str
-            md5 hash retrieved from ENA file report
+        md5 hash retrieved from ENA file report
     Returns
     -------
     bool
@@ -59,7 +59,9 @@ def check(
     return all(check_accession(accession) for accession in accessions)
 
 
-def _check_accession(accession: str, directory: th.PathType, attempts: int, attempts_interval: int):
+def _check_accession(
+    accession: str, directory: th.PathType, attempts: int, attempts_interval: int
+) -> bool:
     """
     Takes an accession and check it against its md5
 

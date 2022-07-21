@@ -1,5 +1,6 @@
 import logging
 import subprocess
+import typing as tp
 from pathlib import Path
 
 import backoff
@@ -26,7 +27,7 @@ def download(
     binary_path: th.PathType = "",
     attempts: int,
     attempts_interval: int,
-    **kwargs,
+    **kwargs: tp.Any,
 ) -> bool:
 
     aspera_ssh_path = kwargs.get("aspera_ssh_path", "")
