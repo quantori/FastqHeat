@@ -40,7 +40,10 @@ def check_accession(
     """Check loaded run by lines in file cnt"""
 
     cnt_loaded = _get_cnt_of_coding_loaded_lines(
-        accession=accession, path=path, core_count=core_count, internal_check=internal_check,
+        accession=accession,
+        path=path,
+        core_count=core_count,
+        internal_check=internal_check,
     )
 
     needed_lines_cnt = ENAClient(
@@ -74,11 +77,16 @@ def _count_lines(path: Path, chunk_size: int = 8 * 10**6) -> int:
 
 
 def _get_cnt_of_coding_loaded_lines(
-    accession: str, core_count: int, path: Path, internal_check: bool,
+    accession: str,
+    core_count: int,
+    path: Path,
+    internal_check: bool,
 ) -> int:
     """Count lines in real loaded file(s) and return it."""
 
-    with FilesToCheck(accession=accession, path=path, core_count=core_count, internal_check=internal_check) as fastq_files:
+    with FilesToCheck(
+        accession=accession, path=path, core_count=core_count, internal_check=internal_check
+    ) as fastq_files:
 
         if len(fastq_files) == 1:
             logger.debug('we loaded single-stranded read and have not to divide by 2 cnt of lines')
@@ -99,7 +107,6 @@ def _get_cnt_of_coding_loaded_lines(
 
 
 class FilesToCheck:
-
     def __init__(self, accession: str, path: Path, core_count: int, internal_check: bool):
         self.accession = accession
         self.path = path
@@ -132,5 +139,6 @@ class FilesToCheck:
         if not file_paths:
             raise ValueError("No files have been given to unpigz")
         logger.debug("Unzipping %s...", "; ".join([str(file) for file in file_paths]))
-        subprocess.run(['unpigz', '--keep', '--processes', str(self.core_count), *file_paths],
-                       check=True)
+        subprocess.run(
+            ['unpigz', '--keep', '--processes', str(self.core_count), *file_paths], check=True
+        )

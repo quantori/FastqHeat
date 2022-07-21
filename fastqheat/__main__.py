@@ -178,18 +178,17 @@ def cli():
     help='Skip metadata download step',
 )
 def ena(
-        working_dir,
-        metadata_file,
-        config,
-        transport,
-        accession,
-        attempts,
-        attempts_interval,
-        cpu_count,
-        skip_download,
-        skip_check,
-        skip_download_metadata,
-
+    working_dir,
+    metadata_file,
+    config,
+    transport,
+    accession,
+    attempts,
+    attempts_interval,
+    cpu_count,
+    skip_download,
+    skip_check,
+    skip_download_metadata,
 ):
     if not skip_download:
         ena_module.download(
@@ -215,21 +214,21 @@ def ena(
             accessions=accession,
             attempts=attempts,
             attempts_interval=attempts_interval,
-            cpu_count=cpu_count
+            cpu_count=cpu_count,
         )
 
 
 @click.command()
 @common_options
 def sra(
-        working_dir,
-        config,
-        accession,
-        attempts,
-        attempts_interval,
-        cpu_count,
-        skip_download,
-        skip_check,
+    working_dir,
+    config,
+    accession,
+    attempts,
+    attempts_interval,
+    cpu_count,
+    skip_download,
+    skip_check,
 ):
     if not skip_download:
         sra_module.download(

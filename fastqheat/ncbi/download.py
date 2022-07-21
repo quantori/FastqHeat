@@ -49,7 +49,10 @@ class NCBIDownloadClient:
         )(self._download_via_fastrq_dump)
 
         self.check_func = partial(
-            check_accession, attempts=attempts, attempts_interval=attempts_interval, internal_check=True,
+            check_accession,
+            attempts=attempts,
+            attempts_interval=attempts_interval,
+            internal_check=True,
         )
 
     def download_accession_list(self, accessions: list[str]) -> bool:
