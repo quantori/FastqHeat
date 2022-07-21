@@ -2,7 +2,6 @@ import configparser
 import logging
 import os
 import os.path
-import os.path
 import re
 import subprocess
 import typing as tp
@@ -10,8 +9,8 @@ import typing as tp
 import backoff
 import click
 
-import ena as ena_module
-import ncbi as sra_module
+import fastqheat.ena as ena_module
+import fastqheat.ncbi as sra_module
 from fastqheat import __version__
 from fastqheat.config import config
 from fastqheat.ena.ena_api_client import ENAClient
@@ -55,27 +54,29 @@ def _make_accession_list(term: str) -> list[str]:
     return accession_list
 
 
-def validate_accession(ctx, param, value):
+@tp.no_type_check
+def validate_accession(ctx, param, value) -> list[str]:
     return re.split('[ ,]+', value)
 
 
-def validate_config(ctx, param, value):
+@tp.no_type_check
+def validate_config(ctx, param, value) -> configparser.ConfigParser:
     config = configparser.ConfigParser()
     config.read(value)
-    if not 'SRA' in config.keys():
+    if 'SRA' not in config.keys():
         raise click.BadParameter(f"SRA section not found in config {value}")
-    if not 'SSHKey' in config['SRA'].keys():
+    if 'SSHKey' not in config['SRA'].keys():
         raise click.BadParameter(f"SSHKey not found in SRA section of config {value}")
-    if not 'FasterQDump' in config['SRA'].keys():
+    if 'FasterQDump' not in config['SRA'].keys():
         raise click.BadParameter(f"FasterQDump not found in SRA section of config {value}")
-    if not 'ENA' in config.keys():
+    if 'ENA' not in config.keys():
         raise click.BadParameter(f"ENA section not found in config {value}")
-    if not 'AsperaFASP' in config['ENA'].keys():
+    if 'AsperaFASP' not in config['ENA'].keys():
         raise click.BadParameter(f"AsperaFASP not found in ENA section of config {value}")
     return config
 
 
-def common_options(f):
+def common_options(f: tp.Callable) -> tp.Callable:
     f = click.option(
         '--working-dir',
         default=os.getcwd,
@@ -116,7 +117,8 @@ def common_options(f):
         '--skip-download',
         default=False,
         show_default=True,
-        help='Skip data download step. Data check (if not skipped) will expect data to be in the working directory',
+        help='Skip data download step. Data check (if not skipped) will '
+        'expect data to be in the working directory',
         type=click.BOOL,
     )(f)
     f = click.option(
@@ -135,23 +137,17 @@ def common_options(f):
     return f
 
 
-def get_config_path():
+def get_config_path() -> str:
     return os.path.join(os.path.dirname(__file__), 'config.conf')
 
 
-def get_config(config_path):
-    config = configparser.ConfigParser()
-    config.read(config_path)
-    return config
-
-
-def get_metadata_file():
+def get_metadata_file() -> str:
     return os.path.join(os.getcwd(), 'metadata.csv')
 
 
 @click.group()
 @click.version_option(__version__)
-def cli():
+def cli() -> None:
     pass
 
 
@@ -178,18 +174,18 @@ def cli():
     help='Skip metadata download step',
 )
 def ena(
-    working_dir,
-    metadata_file,
-    config,
-    transport,
-    accession,
-    attempts,
-    attempts_interval,
-    cpu_count,
-    skip_download,
-    skip_check,
-    skip_download_metadata,
-):
+    working_dir: str,
+    metadata_file: str,
+    config: configparser.ConfigParser,
+    transport: str,
+    accession: list[str],
+    attempts: int,
+    attempts_interval: int,
+    cpu_count: int,
+    skip_download: bool,
+    skip_check: bool,
+    skip_download_metadata: bool,
+) -> None:
     if not skip_download:
         ena_module.download(
             accessions=accession,
@@ -221,15 +217,15 @@ def ena(
 @click.command()
 @common_options
 def sra(
-    working_dir,
-    config,
-    accession,
-    attempts,
-    attempts_interval,
-    cpu_count,
-    skip_download,
-    skip_check,
-):
+    working_dir: str,
+    config: configparser.ConfigParser,
+    accession: list[str],
+    attempts: int,
+    attempts_interval: int,
+    cpu_count: int,
+    skip_download: bool,
+    skip_check: bool,
+) -> None:
     if not skip_download:
         sra_module.download(
             output_directory=working_dir,
