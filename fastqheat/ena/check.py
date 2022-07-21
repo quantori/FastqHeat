@@ -48,6 +48,7 @@ def check(
     accessions: list[str],
     attempts: int,
     attempts_interval: int,
+    **kwargs,
 ) -> bool:
 
     check_accession = partial(
