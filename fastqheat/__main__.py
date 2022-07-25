@@ -207,7 +207,7 @@ def ena(
     if not skip_download_metadata:
         ena_module.download_metadata(
             directory=metadata_file,
-            accessions=accession,
+            accession=accession,
             attempts=attempts,
             attempts_interval=attempts_interval,
             cpu_count=cpu_count,

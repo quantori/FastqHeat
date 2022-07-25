@@ -1,5 +1,6 @@
 import logging
 import subprocess
+import typing as tp
 from functools import partial
 from pathlib import Path
 
@@ -18,7 +19,7 @@ def download(
     accessions: list[str],
     attempts: int = config.MAX_ATTEMPTS,
     attempts_timeout: int,
-    **kwargs,
+    **kwargs: tp.Any,
 ) -> bool:
 
     download_client = NCBIDownloadClient(
@@ -52,13 +53,14 @@ class NCBIDownloadClient:
             check_accession,
             attempts=attempts,
             attempts_interval=attempts_interval,
-            internal_check=True,
+            zipped=False,
         )
 
     def download_accession_list(self, accessions: list[str]) -> bool:
+        """Download multiple accessions one by one."""
         return all(self.download_one_accession(accession) for accession in accessions)
 
-    def download_one_accession(self, accession) -> bool:
+    def download_one_accession(self, accession: str) -> bool:
         """
 
         Download the run from NCBI's Sequence Read Archive (SRA)
@@ -78,18 +80,21 @@ class NCBIDownloadClient:
         logger.info('Trying to download %s file', accession)
 
         self.download_function(accession=accession, accession_directory=accession_directory)
-        # check completeness of the file and return boolean
         correctness = self.check_func(accession=accession, path=accession_directory)
 
         if correctness:
-            fastq_files = list(accession_directory.glob(f'{accession}*.fastq'))
-            logger.info("Compressing FASTQ files for %s in %s", accession, accession_directory)
-            subprocess.run(['pigz', '--processes', str(self.core_count), *fastq_files], check=True)
-            logger.info("FASTQ files for %s have been zipped", accession)
+            self._zip(accession_directory, accession)
 
         return correctness
 
-    def _download_via_fastrq_dump(self, accession: str, accession_directory: str) -> None:
+    def _zip(self, accession_directory: Path, accession: str) -> None:
+        fastq_files = list(accession_directory.glob(f'{accession}*.fastq'))
+        logger.info("Compressing FASTQ files for %s in %s", accession, accession_directory)
+        subprocess.run(['pigz', '--processes', str(self.core_count), *fastq_files], check=True)
+        logger.info("FASTQ files for %s have been zipped", accession)
+
+    def _download_via_fastrq_dump(self, accession: str, accession_directory: Path) -> None:
+        logger.debug("Downloading accession %s using fasterq-dump...", accession)
         subprocess.run(
             [
                 'fasterq-dump',
