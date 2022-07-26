@@ -10,7 +10,7 @@ import backoff
 import click
 
 import fastqheat.ena as ena_module
-import fastqheat.ncbi as sra_module
+import fastqheat.ncbi as ncbi_module
 from fastqheat import __version__
 from fastqheat.config import config
 from fastqheat.ena.ena_api_client import ENAClient
@@ -63,14 +63,14 @@ def validate_accession(ctx, param, value) -> list[str]:
 def validate_config(ctx, param, value) -> configparser.ConfigParser:
     config = configparser.ConfigParser()
     config.read(value)
-    if 'SRA' not in config.keys():
-        raise click.BadParameter(f"SRA section not found in config {value}")
-    if 'SSHKey' not in config['SRA'].keys():
-        raise click.BadParameter(f"SSHKey not found in SRA section of config {value}")
-    if 'FasterQDump' not in config['SRA'].keys():
-        raise click.BadParameter(f"FasterQDump not found in SRA section of config {value}")
+    if 'NCBI' not in config.keys():
+        raise click.BadParameter(f"NCBI section not found in config {value}")
+    if 'FasterQDump' not in config['NCBI'].keys():
+        raise click.BadParameter(f"FasterQDump not found in NCBI section of config {value}")
     if 'ENA' not in config.keys():
         raise click.BadParameter(f"ENA section not found in config {value}")
+    if 'SSHKey' not in config['ENA'].keys():
+        raise click.BadParameter(f"SSHKey not found in ENA section of config {value}")
     if 'AsperaFASP' not in config['ENA'].keys():
         raise click.BadParameter(f"AsperaFASP not found in ENA section of config {value}")
     return config
@@ -191,10 +191,11 @@ def ena(
             accessions=accession,
             output_directory=working_dir,
             transport=transport,
-            binary_path=config['SRA']['FasterQDump'],
+            binary_path=config['NCBI']['FasterQDump'],
             attempts=attempts,
             attempts_interval=attempts_interval,
             cpu_count=cpu_count,
+            aspera_ssh_path=config['ENA']['asperaweb_id_dsa.openssh']
         )
     if not skip_check:
         ena_module.check(
@@ -227,16 +228,16 @@ def sra(
     skip_check: bool,
 ) -> None:
     if not skip_download:
-        sra_module.download(
+        ncbi_module.download(
             output_directory=working_dir,
-            binary_path=config['SRA']['FasterQDump'],
+            binary_path=config['NCBI']['FasterQDump'],
             accessions=accession,
             attempts=attempts,
             attempts_timeout=attempts_interval,
             cpu_count=cpu_count,
         )
     if not skip_check:
-        sra_module.check(
+        ncbi_module.check(
             directory=working_dir,
             accessions=accession,
             attempts=attempts,
