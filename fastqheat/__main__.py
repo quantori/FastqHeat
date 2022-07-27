@@ -163,12 +163,14 @@ def cli() -> None:
 
     ## Installation
 
-     1. [Make sure you have installed a supported version of Python](https://www.python.org/downloads/).
+     1. [Make sure you have installed a supported version of Python]
+     (https://www.python.org/downloads/).
 
      2. Clone this project from GitHub or download it as an archive.
 
      3. **Optional, but recommended:** create and activate a fresh
-     [virtual environment](https://docs.python.org/3/library/venv.html#creating-virtual-environments).
+     [virtual environment]
+     (https://docs.python.org/3/library/venv.html#creating-virtual-environments).
 
      4. Install it directly with `pip`.
 
@@ -232,7 +234,7 @@ def ena(
             attempts=attempts,
             attempts_interval=attempts_interval,
             cpu_count=cpu_count,
-            aspera_ssh_path=config['ENA']['SSHKey.openssh']
+            aspera_ssh_path=config['ENA']['SSHKey.openssh'],
         )
     if skip_download and not skip_check:
         ena_module.check(
