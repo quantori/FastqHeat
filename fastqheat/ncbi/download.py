@@ -19,6 +19,7 @@ def download(
     accessions: list[str],
     attempts: int = config.MAX_ATTEMPTS,
     attempts_timeout: int,
+    core_count: int,
     **kwargs: tp.Any,
 ) -> bool:
 
@@ -26,7 +27,7 @@ def download(
         output_directory,
         attempts,
         attempts_timeout,
-        core_count=kwargs.get("core_count", 6),  # todo: get from config
+        core_count=core_count,  # todo: get default from config
     )
 
     return download_client.download_accession_list(accessions)

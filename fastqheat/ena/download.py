@@ -16,7 +16,7 @@ logger = logging.getLogger("fastqheat.ena.download")
 
 
 class TransportType(BaseEnum):
-    aspera = "aspera"
+    binary = "binary"
     ftp = "ftp"
 
 
@@ -62,7 +62,7 @@ class ENADownloadClient:
         self.transport = transport
         self.aspera_ssh_path = aspera_ssh_path or config.PATH_TO_ASPERA_KEY
 
-        if transport == TransportType.aspera:
+        if transport == TransportType.binary:
             self._download_function = backoff.on_exception(
                 backoff.constant,
                 subprocess.CalledProcessError,
@@ -85,7 +85,7 @@ class ENADownloadClient:
     def download_one_accession(self, accession: str) -> bool:
         logger.debug("Preparing to download an accession: %s", accession)
         transport_flag = (
-            {"aspera": True} if self.transport == TransportType.aspera else {"ftp": True}
+            {"aspera": True} if self.transport == TransportType.binary else {"ftp": True}
         )
 
         links, md5s = ENAClient(
