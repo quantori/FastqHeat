@@ -227,13 +227,14 @@ def ena(
             accessions=accession,
             output_directory=working_dir,
             transport=transport,
+            skip_check=skip_check,
             binary_path=config['ENA']['AsperaFASP'],
             attempts=attempts,
             attempts_interval=attempts_interval,
             cpu_count=cpu_count,
             aspera_ssh_path=config['ENA']['SSHKey.openssh']
         )
-    if not skip_check:
+    if skip_download and not skip_check:
         ena_module.check(
             directory=working_dir,
             accessions=accession,
