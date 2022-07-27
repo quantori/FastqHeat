@@ -148,6 +148,36 @@ def get_metadata_file() -> str:
 @click.group()
 @click.version_option(__version__)
 def cli() -> None:
+    """
+    This help message is also accessible via `python3 -m fastqheat --help`.
+
+    ## Compatibility
+
+    FastqHeat is being developed and tested under Python 3.9.x.
+
+    ## Installation
+
+     1. [Make sure you have installed a supported version of Python](https://www.python.org/downloads/).
+
+     2. Clone this project from GitHub or download it as an archive.
+
+     3. **Optional, but recommended:** create and activate a fresh
+     [virtual environment](https://docs.python.org/3/library/venv.html#creating-virtual-environments).
+
+     4. Install it directly with `pip`.
+
+    Full example for Linux systems:
+
+    bash:
+
+    $ git clone git@github.com:quantori/FastqHeat.git
+
+    $ python3 -m venv env
+
+    $ . env/bin/activate
+
+    $ pip install FastqHeat/
+    """
     pass
 
 
