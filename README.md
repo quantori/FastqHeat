@@ -68,7 +68,7 @@ Options:
   --skip-download-metadata BOOLEAN                                           
                                   Skip metadata download step  [default:     
                                   False]                                     
-  --help                          Show this message and exit.      
+  --help                          Show this message and exit.      push
 ```
 ### NCBI
 ```
