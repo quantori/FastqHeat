@@ -221,11 +221,11 @@ def ena(
             accessions=accession,
             output_directory=working_dir,
             transport=transport,
-            binary_path=config['NCBI']['FasterQDump'],
+            binary_path=config['ENA']['AsperaFASP'],
             attempts=attempts,
             attempts_interval=attempts_interval,
             cpu_count=cpu_count,
-            aspera_ssh_path=config['ENA']['asperaweb_id_dsa.openssh']
+            aspera_ssh_path=config['ENA']['SSHKey.openssh']
         )
     if not skip_check:
         ena_module.check(
