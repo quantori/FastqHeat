@@ -165,7 +165,7 @@ def cli() -> None:
     default=get_metadata_file,
     show_default=True,
     help='Metadata filepath',
-    type=click.Path(exists=True, file_okay=True, dir_okay=False, writable=True),
+    type=click.Path(exists=False, file_okay=True, dir_okay=False, writable=True),
 )
 @click.option(
     '--skip-download-metadata',
@@ -217,7 +217,7 @@ def ena(
 
 @click.command()
 @common_options
-def sra(
+def ncbi(
     working_dir: str,
     config: configparser.ConfigParser,
     accession: list[str],
@@ -247,7 +247,7 @@ def sra(
 
 
 cli.add_command(ena)
-cli.add_command(sra)
+cli.add_command(ncbi)
 
 if __name__ == '__main__':
     cli()
