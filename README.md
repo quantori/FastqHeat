@@ -28,6 +28,74 @@ This project supports command line usage. Here's the complete list of supported 
 along with explanation:
 
 ```
+ python -m fastqheat [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  --version  Show the version and exit.
+  --help     Show this message and exit.
+
+Commands:
+  ena
+  ncbi
+
+```
+### ENA
+```
+Usage: python -m fastqheat ena [OPTIONS]                                     
+                                                                             
+Options:                                                                     
+  --cpu-count INTEGER RANGE       Number of binaries or data checking threads
+                                  to be working simultaneously.  [default:   
+                                  (dynamic); x>=1]                           
+  --skip-check BOOLEAN            Skip data check step.  [default: False]    
+  --skip-download BOOLEAN         Skip data download step. Data check (if not
+                                  skipped) will expect data to be in the     
+                                  working directory  [default: False]        
+  --attempts_interval INTEGER RANGE                                          
+                                  Retry attempts interval in seconds in case 
+                                  of network error.  [default: 0; x>=0]      
+  --attempts INTEGER RANGE        Retry attempts in case of network error.   
+                                  [default: 0; x>=0]                         
+  --accession TEXT                List of accessions separated by comma. E.g 
+                                  "111,222,333"                              
+  --config FILE                   Configuration file path.  [default:        
+                                  (dynamic)]                                 
+  --working-dir DIRECTORY         Working directory.  [default: <built-in    
+                                  function getcwd>]                          
+  --transport [binary|ftp]        Transport (method) to be user to download  
+                                  data.  [default: binary]                   
+  --metadata-file FILE            Metadata filepath  [default: (dynamic)]    
+  --skip-download-metadata BOOLEAN                                           
+                                  Skip metadata download step  [default:     
+                                  False]                                     
+  --help                          Show this message and exit.      
+```
+### NCBI
+```
+Usage: python -m fastqheat ncbi [OPTIONS]                                    
+                                                                             
+Options:                                                                     
+  --cpu-count INTEGER RANGE       Number of binaries or data checking threads
+                                  to be working simultaneously.  [default:   
+                                  (dynamic); x>=1]                           
+  --skip-check BOOLEAN            Skip data check step.  [default: False]    
+  --skip-download BOOLEAN         Skip data download step. Data check (if not
+                                  skipped) will expect data to be in the     
+                                  working directory  [default: False]        
+  --attempts_interval INTEGER RANGE                                          
+                                  Retry attempts interval in seconds in case 
+                                  of network error.  [default: 0; x>=0]      
+  --attempts INTEGER RANGE        Retry attempts in case of network error.   
+                                  [default: 0; x>=0]                         
+  --accession TEXT                List of accessions separated by comma. E.g 
+                                  "111,222,333"                              
+  --config FILE                   Configuration file path.  [default:        
+                                  (dynamic)]                                 
+  --working-dir DIRECTORY         Working directory.  [default: <built-in    
+                                  function getcwd>]                          
+  --help                          Show this message and exit.   
+```
+
 usage: __main__.py [-h] [-L {debug,info,warning,error}] [-O OUT] [-M METHOD] [-c CORES] [-a ATTEMPTS] term
 
 positional arguments:
