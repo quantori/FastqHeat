@@ -270,7 +270,7 @@ def ncbi(
             accessions=accession,
             attempts=attempts,
             attempts_timeout=attempts_interval,
-            cpu_count=cpu_count,
+            core_count=cpu_count,
         )
     if not skip_check:
         ncbi_module.check(
