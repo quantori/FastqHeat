@@ -15,6 +15,12 @@ from fastqheat.ena.ena_api_client import ENAClient
 from fastqheat.typing_helpers import PathType
 from fastqheat.utility import get_cpu_cores_count
 
+logging.basicConfig(
+    format="%(asctime)s:%(levelname)s:%(name)s:%(message)s", level='DEBUG', datefmt="%H:%M:%S"
+)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+
 SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
 SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
 USABLE_CPUS_COUNT = get_cpu_cores_count()
