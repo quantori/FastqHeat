@@ -18,7 +18,7 @@ def check(
     attempts_interval: int,
     core_count: int,
     zipped: bool = True,
-) -> bool:
+) -> None:
     """Check accessions in bulk."""
     check_func = partial(
         check_accession,
@@ -28,7 +28,9 @@ def check(
         zipped=zipped,
     )
     directory = Path(directory)
-    return all(check_func(accession, directory) for accession in accessions)
+
+    successfully_checked = sum(check_func(accession, directory) for accession in accessions)
+    logger.info("%d/%d files were checked successfully.", successfully_checked, len(accessions))
 
 
 def check_accession(
@@ -40,6 +42,8 @@ def check_accession(
     zipped: bool = False,
 ) -> bool:
     """Check loaded run by lines in file cnt"""
+
+    logger.debug("Checking accession %s", accession)
 
     cnt_loaded = _get_cnt_of_coding_loaded_lines(
         accession=accession,
@@ -145,6 +149,7 @@ class FilesToCheck:
         if not self.zipped:
             return list(self.path.glob(f'{self.accession}*.fastq'))
 
+        logger.debug(self.path)
         fastq_files_zipped = list(self.path.glob(f'{self.accession}*.fastq.gz'))
         if not fastq_files_zipped:
             raise FileNotFoundError("No files found")

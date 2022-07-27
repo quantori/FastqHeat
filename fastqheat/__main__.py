@@ -234,7 +234,7 @@ def ena(
             attempts=attempts,
             attempts_interval=attempts_interval,
             cpu_count=cpu_count,
-            aspera_ssh_path=config['ENA']['SSHKey.openssh'],
+            aspera_ssh_path=config['ENA']['SSHKey'],
         )
     if skip_download and not skip_check:
         ena_module.check(
@@ -272,10 +272,11 @@ def ncbi(
             binary_path=config['NCBI']['FasterQDump'],
             accessions=accession,
             attempts=attempts,
+            skip_check=skip_check,
             attempts_timeout=attempts_interval,
             core_count=cpu_count,
         )
-    if not skip_check:
+    if skip_download and not skip_check:
         ncbi_module.check(
             directory=working_dir,
             accessions=accession,

@@ -75,6 +75,32 @@ class ENAClient:
 
         return urls, md5s
 
+    def get_urls(self, term: str, ftp: bool = False, aspera: bool = False) -> list[str]:
+        """
+        Returns links based on the given term
+
+        urls - list of FTP links or IBM Aspera links to download given SRR IDs
+        """
+
+        if ftp + aspera != 1:
+            raise ValueError("Either ftp of aspera flag should be True")
+
+        fields = "fastq_ftp" if ftp else "fastq_aspera"
+
+        params = {**self._query_params, "fields": fields, "accession": term}
+
+        response_data = self._get(params=params)
+        url_type = f"fastq_{'ftp' if ftp else 'aspera'}"
+
+        if ftp:
+            # FTP URLs from ENA do NOT currently include the scheme. Just prepend http://
+            # https://ena-docs.readthedocs.io/en/latest/retrieval/file-download.html
+            urls = [f"http://{uri}" for uri in response_data[0][url_type].split(';')]
+        else:
+            urls = response_data[0][url_type].split(';')
+
+        return urls
+
     def get_read_count(self, term: str) -> int:
         """Return total count of lines that should be in a file in order to check it is okay."""
 

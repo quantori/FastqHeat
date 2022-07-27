@@ -10,7 +10,7 @@ from fastqheat.ena.ena_api_client import ENAClient
 logger = logging.getLogger("fastqheap.ena.check")
 
 
-def md5_checksum(file_path: th.PathType, md5: str) -> bool:
+def check_md5_checksum(file_path: th.PathType, md5: str) -> bool:
     """
     Compare mdh5 hash of file to md5 value retrieved
     from ENA file report
@@ -50,7 +50,7 @@ def check(
     attempts: int,
     attempts_interval: int,
     **kwargs: tp.Any,
-) -> bool:
+) -> None:
 
     check_accession = partial(
         _check_accession,
@@ -58,7 +58,8 @@ def check(
         attempts=attempts,
         attempts_interval=attempts_interval,
     )
-    return all(check_accession(accession) for accession in accessions)
+    successfully_checked = sum(check_accession(accession) for accession in accessions)
+    logger.info("%d/%d files were checked successfully.", successfully_checked, len(accessions))
 
 
 def _check_accession(
@@ -83,4 +84,4 @@ def _check_accession(
     fastq_files = sorted(list(path.glob(f'{accession}*.fastq.gz')))
     logger.debug("Found files:\n%s", "\n".join([str(file) for file in fastq_files]))
 
-    return all((md5_checksum(file, md5) for file, md5 in zip(fastq_files, md5s)))
+    return all((check_md5_checksum(file, md5) for file, md5 in zip(fastq_files, md5s)))

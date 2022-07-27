@@ -20,17 +20,31 @@ def download(
     attempts: int = config.MAX_ATTEMPTS,
     attempts_timeout: int,
     core_count: int,
+    skip_check: bool,
     **kwargs: tp.Any,
-) -> bool:
+) -> None:
 
     download_client = NCBIDownloadClient(
         output_directory,
         attempts,
         attempts_timeout,
+        skip_check,
         core_count=core_count,  # todo: get default from config
     )
 
-    return download_client.download_accession_list(accessions)
+    successfully_downloaded = download_client.download_accession_list(accessions)
+    num_accessions = len(accessions)
+
+    if skip_check:
+        logger.info(
+            "%d/%d runs were downloaded successfully.", successfully_downloaded, num_accessions
+        )
+    else:
+        logger.info(
+            "%d/%d runs were downloaded and checked successfully.",
+            successfully_downloaded,
+            num_accessions,
+        )
 
 
 class NCBIDownloadClient:
@@ -39,9 +53,11 @@ class NCBIDownloadClient:
         output_directory: th.PathType,
         attempts: int,
         attempts_interval: int,
+        skip_check: bool,
         core_count: int,
     ):
         self.output_directory = output_directory
+        self.skip_check = skip_check
         self.core_count = core_count
         self.download_function = backoff.on_exception(
             backoff.constant,
@@ -57,9 +73,9 @@ class NCBIDownloadClient:
             zipped=False,
         )
 
-    def download_accession_list(self, accessions: list[str]) -> bool:
+    def download_accession_list(self, accessions: list[str]) -> int:
         """Download multiple accessions one by one."""
-        return all(self.download_one_accession(accession) for accession in accessions)
+        return sum(self.download_one_accession(accession) for accession in accessions)
 
     def download_one_accession(self, accession: str) -> bool:
         """
@@ -81,7 +97,10 @@ class NCBIDownloadClient:
         logger.info('Trying to download %s file', accession)
 
         self.download_function(accession=accession, accession_directory=accession_directory)
-        correctness = self.check_func(accession=accession, path=accession_directory)
+
+        correctness = True
+        if not self.skip_check:
+            correctness = self.check_func(accession=accession, path=accession_directory)
 
         if correctness:
             self._zip(accession_directory, accession)
