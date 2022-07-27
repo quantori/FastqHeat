@@ -1,18 +1,19 @@
-import argparse
+import configparser
 import logging
+import os
 import os.path
 import re
-import ssl
 import subprocess
 import typing as tp
 
 import backoff
-import requests
-import urllib3
+import click
 
+import fastqheat.ena as ena_module
+import fastqheat.ncbi as ncbi_module
+from fastqheat import __version__
 from fastqheat.config import config
 from fastqheat.ena.ena_api_client import ENAClient
-from fastqheat.typing_helpers import PathType
 from fastqheat.utility import get_cpu_cores_count
 
 logging.basicConfig(
@@ -47,13 +48,6 @@ def get_program_version(program_name: str) -> tp.Optional[str]:
         return output
 
 
-# method_to_download_function: dict[str, tp.Callable[..., bool]] = {
-#     "f": download_run_ftp,
-#     "a": download_run_aspc,
-#     "q": download_run_fasterq_dump,
-# }
-
-
 def _make_accession_list(term: str) -> list[str]:
     """Get an accession list based on pattern of the given term."""
     if SRR_PATTERN.search(term):
@@ -66,194 +60,233 @@ def _make_accession_list(term: str) -> list[str]:
     return accession_list
 
 
-def download_function(*args: tp.Any, **kwargs: tp.Any) -> bool:
-    return True
+@tp.no_type_check
+def validate_accession(ctx, param, value) -> list[str]:
+    return re.split('[ ,]+', value)
 
 
-def handle_methods(term: str, method: str, out: PathType, *, core_count: int) -> list:
-    """Runs specific download function based on the given method."""
-
-    states = []
-    # try:
-    #     download_function = method_to_download_function[
-    #         method
-    #     ]
-    # except KeyError:
-    #     raise ValueError(f"Unknown method: {method}")
-
-    accession_list = _make_accession_list(term)
-
-    if method == 'q':
-        for accession in accession_list:
-            states.append(download_function(accession, out, core_count=core_count))
-    else:
-        for accession in accession_list:
-            states.append(download_function(accession, out))
-
-    return states
+@tp.no_type_check
+def validate_config(ctx, param, value) -> configparser.ConfigParser:
+    config = configparser.ConfigParser()
+    config.read(value)
+    if 'NCBI' not in config.keys():
+        raise click.BadParameter(f"NCBI section not found in config {value}")
+    if 'FasterQDump' not in config['NCBI'].keys():
+        raise click.BadParameter(f"FasterQDump not found in NCBI section of config {value}")
+    if 'ENA' not in config.keys():
+        raise click.BadParameter(f"ENA section not found in config {value}")
+    if 'SSHKey' not in config['ENA'].keys():
+        raise click.BadParameter(f"SSHKey not found in ENA section of config {value}")
+    if 'AsperaFASP' not in config['ENA'].keys():
+        raise click.BadParameter(f"AsperaFASP not found in ENA section of config {value}")
+    return config
 
 
-class TermParser:
-    """
-    Provides a method for parsing terms from a string.
-
-    A string can represent a singular term or a *.txt file with a few terms.
-    """
-
-    def __init__(self, directory: str):
-        self.terms: list[str] = []
-        self.directory = directory
-
-    @staticmethod
-    def _parse_terms_from_file(filename: str) -> list[str]:
-        with open(filename, "r") as file:
-            return [line.strip() for line in file]
-
-    def parse_from_input(self, input_string: str) -> list[str]:
-        if not input_string:
-            logging.error('Empty term.')
-            raise ValueError
-
-        if input_string.endswith('.txt'):
-            self.terms = self._parse_terms_from_file(input_string)
-        elif "." not in input_string:
-            self.terms = [input_string]
-        else:
-            logging.error('Use either correct term or only .txt file format.')
-            raise ValueError
-
-        return self.terms
-
-
-def _positive_integer_argument(value: str) -> int:
-    converted = int(value)
-    if converted <= 0:
-        raise ValueError
-
-    return converted
-
-
-if __name__ == "__main__":
-    # For debugging use
-    # term = 'SRP150545'  #   6 files more than 2-3Gb each
-    # term = 'SRP163674'  # 129 files, 2-8 Mb each (ex of double stranded SRR7969890)
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "term",
-        help=(
-            "The name of SRA Study identifier, looks like SRP... or ERP... or DRP...  "
-            "or .txt file name which includes multiple SRA Study identifiers"
-        ),
-    )
-    parser.add_argument(
-        "-L",
-        "--log",
-        dest="log_level",
-        help="Logging level",
-        choices=["debug", "info", "warning", "error"],
-        default="info",
-    )
-    parser.add_argument("-O", "--out", help="Output directory", default=".")
-    parser.add_argument(
-        "-M",
-        "--method",
-        help=(
-            "Choose different type of methods that should be used for data retrieval: "
-            "Aspera (a), FTP (f), fasterq_dump (q). By default it is fasterq_dump (q)"
-        ),
-        default='q',
-    )
-    parser.add_argument(
-        '-c',
-        '--cores',
-        help='Number of CPU cores to utilise (for subcommands that support parallel execution)',
-        default=USABLE_CPUS_COUNT,
-        type=_positive_integer_argument,
-    )
-    parser.add_argument(
-        '-a',
+def common_options(f: tp.Callable) -> tp.Callable:
+    f = click.option(
+        '--working-dir',
+        default=os.getcwd,
+        type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True),
+        show_default=True,
+        help='Working directory.',
+    )(f)
+    f = click.option(
+        '--config',
+        default=get_config_path,
+        type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
+        callback=validate_config,
+        show_default=True,
+        help='Configuration file path.',
+    )(f)
+    f = click.option(
+        '--accession',
+        default=[],
+        show_default=True,
+        callback=validate_accession,
+        help='List of accessions separated by comma. E.g "111,222,333"',
+    )(f)
+    f = click.option(
         '--attempts',
-        help='Try to download files this number of times (to prevent crashing on network errors)',
-        type=_positive_integer_argument,
-    )
-    args = parser.parse_args()
+        default=0,
+        show_default=True,
+        help='Retry attempts in case of network error.',
+        type=click.IntRange(min=0),
+    )(f)
+    f = click.option(
+        '--attempts_interval',
+        default=0,
+        show_default=True,
+        help='Retry attempts interval in seconds in case of network error.',
+        type=click.IntRange(min=0),
+    )(f)
+    f = click.option(
+        '--skip-download',
+        default=False,
+        show_default=True,
+        help='Skip data download step. Data check (if not skipped) will '
+        'expect data to be in the working directory',
+        type=click.BOOL,
+    )(f)
+    f = click.option(
+        '--skip-check',
+        default=False,
+        show_default=True,
+        help='Skip data check step.',
+    )(f)
+    f = click.option(
+        '--cpu-count',
+        default=get_cpu_cores_count,
+        show_default=True,
+        help='Number of binaries or data checking threads to be working simultaneously.',
+        type=click.IntRange(min=1),
+    )(f)
+    return f
 
-    config.MAX_ATTEMPTS = args.attempts
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s:%(levelname)s:%(name)s:%(message)s")
 
-    # choose method type
-    if args.method:
-        method = args.method
-    else:
-        logging.error('Choose any method for data retrieval')
-        exit(0)
+def get_config_path() -> str:
+    return os.path.join(os.path.dirname(__file__), 'config.conf')
 
-    if method == 'q':
-        fd_version = get_program_version('fasterq-dump')
-        if fd_version is None:
-            logging.error('fasterq-dump (part of SRA Toolkit) is not installed or not on PATH')
-            exit(0)
 
-        pigz_version = get_program_version('pigz')
-        if pigz_version is None:
-            logging.error('pigz is not installed or not on PATH')
-            exit(0)
+def get_metadata_file() -> str:
+    return os.path.join(os.getcwd(), 'metadata.csv')
 
-        tool = "fasterq+dump"
-    elif method == 'a':
-        fd_version = get_program_version('ascp')
-        if fd_version is None:
-            logging.error('Aspera CLI is not installed or not on PATH')
-            exit(0)
 
-        tool = "Aspera CLI"
-    else:
-        fd_version = ''
-        tool = ''
+@click.group()
+@click.version_option(__version__)
+def cli() -> None:
+    """
+    This help message is also accessible via `python3 -m fastqheat --help`.
 
-    parser.add_argument(
-        '--version', action='version', version=f'{tool} which use {fd_version} version'
-    )
+    ## Compatibility
 
-    out_dir = "."
-    if args.out:
-        if os.path.isdir(args.out):
-            out_dir = args.out
-        else:
-            logging.error('Pointed directory does not exist.')
-            exit(0)
+    FastqHeat is being developed and tested under Python 3.9.x.
 
-    terms = TermParser(out_dir).parse_from_input(args.term)
+    ## Installation
 
-    total_states = []
-    for term in terms:
-        try:
-            total_states.extend(handle_methods(term, method, out_dir, core_count=args.cores))
-        except (
-            requests.exceptions.SSLError,
-            urllib3.exceptions.MaxRetryError,
-            ssl.SSLEOFError,
-        ) as e:
-            logging.error(e)
-            print("Too many requests were made. Exiting system.")
-            exit(0)
-        except requests.exceptions.ConnectionError as e:
-            logging.error(e)
-            print(
-                "Incorrect parameters were provided to tool. Try again with correct ones from ENA."
-            )
-            exit(0)
-        except KeyboardInterrupt:
-            print("Session was interrupted!")
-            exit(0)
-        except BaseException as e:
-            logging.error(e)
-            print("Something went wrong! Exiting the system!")
-            exit(0)
+     1. [Make sure you have installed a supported version of Python]
+     (https://www.python.org/downloads/).
 
-    logging.info(
-        "A total of %d runs were successfully loaded and %d failed to load.",
-        len(total_states),
-        total_states.count(False),
-    )
+     2. Clone this project from GitHub or download it as an archive.
+
+     3. **Optional, but recommended:** create and activate a fresh
+     [virtual environment]
+     (https://docs.python.org/3/library/venv.html#creating-virtual-environments).
+
+     4. Install it directly with `pip`.
+
+    Full example for Linux systems:
+
+    bash:
+
+    $ git clone git@github.com:quantori/FastqHeat.git
+
+    $ python3 -m venv env
+
+    $ . env/bin/activate
+
+    $ pip install FastqHeat/
+    """
+    pass
+
+
+@click.command()
+@common_options
+@click.option(
+    '--transport',
+    default='binary',
+    show_default=True,
+    help='Transport (method) to be user to download data.',
+    type=click.Choice(['binary', 'ftp'], case_sensitive=False),
+)
+@click.option(
+    '--metadata-file',
+    default=get_metadata_file,
+    show_default=True,
+    help='Metadata filepath',
+    type=click.Path(exists=False, file_okay=True, dir_okay=False, writable=True),
+)
+@click.option(
+    '--skip-download-metadata',
+    default=False,
+    show_default=True,
+    help='Skip metadata download step',
+)
+def ena(
+    working_dir: str,
+    metadata_file: str,
+    config: configparser.ConfigParser,
+    transport: str,
+    accession: list[str],
+    attempts: int,
+    attempts_interval: int,
+    cpu_count: int,
+    skip_download: bool,
+    skip_check: bool,
+    skip_download_metadata: bool,
+) -> None:
+    if not skip_download:
+        ena_module.download(
+            accessions=accession,
+            output_directory=working_dir,
+            transport=transport,
+            skip_check=skip_check,
+            binary_path=config['ENA']['AsperaFASP'],
+            attempts=attempts,
+            attempts_interval=attempts_interval,
+            cpu_count=cpu_count,
+            aspera_ssh_path=config['ENA']['SSHKey.openssh'],
+        )
+    if skip_download and not skip_check:
+        ena_module.check(
+            directory=working_dir,
+            accessions=accession,
+            attempts=attempts,
+            attempts_interval=attempts_interval,
+            cpu_count=cpu_count,
+        )
+    if not skip_download_metadata:
+        ena_module.download_metadata(
+            directory=metadata_file,
+            accession=accession,
+            attempts=attempts,
+            attempts_interval=attempts_interval,
+            cpu_count=cpu_count,
+        )
+
+
+@click.command()
+@common_options
+def ncbi(
+    working_dir: str,
+    config: configparser.ConfigParser,
+    accession: list[str],
+    attempts: int,
+    attempts_interval: int,
+    cpu_count: int,
+    skip_download: bool,
+    skip_check: bool,
+) -> None:
+    if not skip_download:
+        ncbi_module.download(
+            output_directory=working_dir,
+            binary_path=config['NCBI']['FasterQDump'],
+            accessions=accession,
+            attempts=attempts,
+            attempts_timeout=attempts_interval,
+            core_count=cpu_count,
+        )
+    if not skip_check:
+        ncbi_module.check(
+            directory=working_dir,
+            accessions=accession,
+            attempts=attempts,
+            attempts_interval=attempts_interval,
+            core_count=cpu_count,
+        )
+
+
+cli.add_command(ena)
+cli.add_command(ncbi)
+
+if __name__ == '__main__':
+    cli()

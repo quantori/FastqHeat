@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import typing as tp
 from functools import partial
 from pathlib import Path
 
@@ -48,6 +49,7 @@ def check(
     accessions: list[str],
     attempts: int,
     attempts_interval: int,
+    **kwargs: tp.Any,
 ) -> bool:
 
     check_accession = partial(

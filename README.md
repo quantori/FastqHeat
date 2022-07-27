@@ -28,50 +28,103 @@ This project supports command line usage. Here's the complete list of supported 
 along with explanation:
 
 ```
-usage: __main__.py [-h] [-L {debug,info,warning,error}] [-O OUT] [-M METHOD] [-c CORES] [-a ATTEMPTS] term
+Usage: python -m fastqheat [OPTIONS] COMMAND [ARGS]...
 
-positional arguments:
-  term                  The name of SRA Study identifier, looks like SRP... or ERP... or DRP...
-                        or .txt file name which includes multiple SRA Study identifiers
+  This help message is also accessible via `python3 -m fastqheat --help`.
 
-options:
-  -h, --help            show this help message and exit
-  -L {debug,info,warning,error}, --log {debug,info,warning,error}
-                        Logging level
-  -O OUT, --out OUT     Output directory
-  -M METHOD, --method METHOD
-                        Choose different type of methods that should be used for data retrieval:
-                        Aspera (a), FTP (f), fasterq_dump (q). By default it is fasterq_dump (q)
-  -c CORES, --cores CORES
-                        Number of CPU cores to utilise (for subcommands that support parallel execution)
-  -a ATTEMPTS, --attempts ATTEMPTS
-                        Number of attempts to download files
+  ## Compatibility
+
+  FastqHeat is being developed and tested under Python 3.9.x.
+
+  ## Installation
+
+   1. [Make sure you have installed a supported version of
+   Python](https://www.python.org/downloads/).
+
+   2. Clone this project from GitHub or download it as an archive.
+
+   3. **Optional, but recommended:** create and activate a fresh  [virtual
+   environment](https://docs.python.org/3/library/venv.html#creating-virtual-
+   environments).
+
+   4. Install it directly with `pip`.
+
+  Full example for Linux systems:
+
+  bash:
+
+  $ git clone git@github.com:quantori/FastqHeat.git
+
+  $ python3 -m venv env
+
+  $ . env/bin/activate
+
+  $ pip install FastqHeat/
+
+Options:
+  --version  Show the version and exit.
+  --help     Show this message and exit.
+
+Commands:
+  ena
+  ncbi
+
 ```
-
-This help message is also accessible via `python3 -m fastqheat --help`.
-
-## Compatibility
-
-FastqHeat is being developed and tested under Python 3.9.x.
-
-## Installation
-
- 1. [Make sure you have installed a supported version of Python](https://www.python.org/downloads/).
-
- 2. Clone this project from GitHub or download it as an archive.
-
- 3. **Optional, but recommended:** create and activate a fresh
- [virtual environment](https://docs.python.org/3/library/venv.html#creating-virtual-environments).
-
- 4. Install it directly with `pip`.
-
-Full example for Linux systems:
-
-```bash
-$ git clone git@github.com:quantori/FastqHeat.git
-$ python3 -m venv env
-$ . env/bin/activate
-$ pip install FastqHeat/
+### ENA
+```
+Usage: python -m fastqheat ena [OPTIONS]                                     
+                                                                             
+Options:                                                                     
+  --cpu-count INTEGER RANGE       Number of binaries or data checking threads
+                                  to be working simultaneously.  [default:   
+                                  (dynamic); x>=1]                           
+  --skip-check BOOLEAN            Skip data check step.  [default: False]    
+  --skip-download BOOLEAN         Skip data download step. Data check (if not
+                                  skipped) will expect data to be in the     
+                                  working directory  [default: False]        
+  --attempts_interval INTEGER RANGE                                          
+                                  Retry attempts interval in seconds in case 
+                                  of network error.  [default: 0; x>=0]      
+  --attempts INTEGER RANGE        Retry attempts in case of network error.   
+                                  [default: 0; x>=0]                         
+  --accession TEXT                List of accessions separated by comma. E.g 
+                                  "111,222,333"                              
+  --config FILE                   Configuration file path.  [default:        
+                                  (dynamic)]                                 
+  --working-dir DIRECTORY         Working directory.  [default: <built-in    
+                                  function getcwd>]                          
+  --transport [binary|ftp]        Transport (method) to be user to download  
+                                  data.  [default: binary]                   
+  --metadata-file FILE            Metadata filepath  [default: (dynamic)]    
+  --skip-download-metadata BOOLEAN                                           
+                                  Skip metadata download step  [default:     
+                                  False]                                     
+  --help                          Show this message and exit.      push
+```
+### NCBI
+```
+Usage: python -m fastqheat ncbi [OPTIONS]                                    
+                                                                             
+Options:                                                                     
+  --cpu-count INTEGER RANGE       Number of binaries or data checking threads
+                                  to be working simultaneously.  [default:   
+                                  (dynamic); x>=1]                           
+  --skip-check BOOLEAN            Skip data check step.  [default: False]    
+  --skip-download BOOLEAN         Skip data download step. Data check (if not
+                                  skipped) will expect data to be in the     
+                                  working directory  [default: False]        
+  --attempts_interval INTEGER RANGE                                          
+                                  Retry attempts interval in seconds in case 
+                                  of network error.  [default: 0; x>=0]      
+  --attempts INTEGER RANGE        Retry attempts in case of network error.   
+                                  [default: 0; x>=0]                         
+  --accession TEXT                List of accessions separated by comma. E.g 
+                                  "111,222,333"                              
+  --config FILE                   Configuration file path.  [default:        
+                                  (dynamic)]                                 
+  --working-dir DIRECTORY         Working directory.  [default: <built-in    
+                                  function getcwd>]                          
+  --help                          Show this message and exit.   
 ```
 
 This will install the project and its external Python dependencies (currently the only external Python
