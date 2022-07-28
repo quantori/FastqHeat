@@ -3,7 +3,7 @@ import requests
 from requests.exceptions import RequestException
 
 from fastqheat.config import config
-from fastqheat.metadata import ENAClient
+from fastqheat.ena.metadata import ENAClient
 from tests.fixtures import MockResponse
 
 accession_response = [
@@ -91,6 +91,65 @@ def test_get_urls_and_md5s(mocker, ftp_flag, aspera_flag, fields, json_response,
     assert md5s == md5s
 
 
+@pytest.mark.parametrize(
+    ("ftp_flag", "aspera_flag", "fields", "json_response", "urls"),
+    [
+        (
+            True,  # ftp_flag
+            False,  # aspera_flag
+            "fastq_ftp",  # fields
+            [
+                {
+                    'run_accession': 'SRR7969986',
+                    'fastq_ftp': 'ftp.sra.ebi.ac.uk/vol1/fastq/SRR796/006/SRR7969986/SRR7969986_1.fastq.gz;ftp.sra.ebi.ac.uk/vol1/fastq/SRR796/006/SRR7969986/SRR7969986_2.fastq.gz',  # noqa: E501 line too long
+                }
+            ],  # json_response - what should be returned by ENA api
+            [
+                'http://ftp.sra.ebi.ac.uk/vol1/fastq/SRR796/006/SRR7969986/SRR7969986_1.fastq.gz',
+                'http://ftp.sra.ebi.ac.uk/vol1/fastq/SRR796/006/SRR7969986/SRR7969986_2.fastq.gz',
+            ],  # urls
+        ),
+        (
+            False,  # ftp_flag
+            True,  # aspera_flag
+            "fastq_aspera",  # fields
+            [
+                {
+                    'run_accession': 'SRR7969986',
+                    'fastq_aspera': 'fasp.sra.ebi.ac.uk:/vol1/fastq/SRR796/006/SRR7969986/SRR7969986_1.fastq.gz;fasp.sra.ebi.ac.uk:/vol1/fastq/SRR796/006/SRR7969986/SRR7969986_2.fastq.gz',  # noqa: E501 line too long
+                }
+            ],  # json_response
+            [
+                'fasp.sra.ebi.ac.uk:/vol1/fastq/SRR796/006/SRR7969986/SRR7969986_1.fastq.gz',
+                'fasp.sra.ebi.ac.uk:/vol1/fastq/SRR796/006/SRR7969986/SRR7969986_2.fastq.gz',
+            ],  # urls
+        ),
+    ],
+)
+def test_get_urls(mocker, ftp_flag, aspera_flag, fields, json_response, urls):
+    """
+    Tests get_urls()
+
+    Test that get_urls() makes right requests and returns right output based on
+    given flags.
+    """
+    ena_client = ENAClient()
+
+    mock = mocker.patch.object(
+        requests,
+        "get",
+        return_value=MockResponse(json=json_response),
+    )
+
+    urls = ena_client.get_urls(term="SRR7969986", ftp=ftp_flag, aspera=aspera_flag)
+
+    get_args = mock.call_args_list[0][1]
+
+    assert get_args["params"]["fields"] == fields
+
+    assert urls == urls
+
+
 @pytest.mark.parametrize(("ftp_flag", "aspera_flag"), [(True, True), (False, False)])
 def test_get_urls_and_md5s_no_flag_fail(ftp_flag, aspera_flag):
     """Tests there should be at least one True flag passed to the get_urls_and_md5s() method."""
@@ -146,12 +205,11 @@ def test_get_run_check(mocker):
 def test_backoff_on_get(mocker):
     """Tests if ENAClient._get() retries on RequestError."""
 
-    config.MAX_ATTEMPTS = 2
     mock = mocker.patch.object(
         requests, "get", side_effect=[RequestException("whatever"), MockResponse(status=200)]
     )  # first time raises an error, second time executes successfully
 
-    ena_client = ENAClient()
+    ena_client = ENAClient(attempts=2)
     ena_client._get(params={"whatever": ""})
 
     assert mock.call_count == config.MAX_ATTEMPTS
