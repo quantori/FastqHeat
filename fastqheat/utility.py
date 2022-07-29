@@ -1,5 +1,8 @@
+import logging
 import os
 from enum import Enum
+
+logger = logging.getLogger("fastqheat.utility")
 
 
 class BaseEnum(str, Enum):

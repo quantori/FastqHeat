@@ -7,9 +7,11 @@ import backoff
 import requests
 
 from fastqheat import typing_helpers as th
+from fastqheat.backend.common import BaseDownloadClient
+from fastqheat.backend.ena.check import check_md5_checksum
+from fastqheat.backend.ena.ena_api_client import ENAClient
 from fastqheat.config import config
-from fastqheat.ena.check import check_md5_checksum
-from fastqheat.ena.ena_api_client import ENAClient
+from fastqheat.exceptions import ValidationError
 from fastqheat.utility import BaseEnum
 
 logger = logging.getLogger("fastqheat.ena.download")
@@ -23,7 +25,7 @@ class TransportType(BaseEnum):
 def download(
     *,
     accessions: list[str],
-    output_directory: th.PathType,
+    output_directory: Path,
     binary_path: th.PathType = "",
     attempts: int,
     attempts_interval: int,
@@ -59,10 +61,10 @@ def download(
         )
 
 
-class ENADownloadClient:
+class ENADownloadClient(BaseDownloadClient):
     def __init__(
         self,
-        output_directory: th.PathType,
+        output_directory: Path,
         attempts: int,
         attempts_interval: int,
         skip_check: bool,
@@ -70,10 +72,8 @@ class ENADownloadClient:
         aspera_ssh_path: th.PathType,
         binary_path: th.PathType = "",
     ):
-        self.output_directory = output_directory
-        self.attempts = attempts
-        self.attempts_interval = attempts_interval
-        self.skip_check = skip_check
+        super().__init__(output_directory, attempts, attempts_interval, skip_check)
+
         self.binary_path = binary_path
         self.transport = transport
         self.aspera_ssh_path = aspera_ssh_path or config.PATH_TO_ASPERA_KEY
@@ -97,33 +97,12 @@ class ENADownloadClient:
                 interval=attempts_interval,
             )(self._download_file)
 
-        self.download_method = (
-            self.download_one_accession
-            if self.skip_check
-            else self.download_and_check_one_accession
-        )
+    def download_one_accession(self, accession: str) -> None:
+        self._download_one_accession(
+            accession
+        ) if self.skip_check else self._download_and_check_one_accession(accession)
 
-    def download_accession_list(self, accessions: list[str]) -> int:
-        """Iterate through accession lint and download them one by one."""
-        num_accessions = len(accessions)
-        logger.info("There are %d accessions to download", num_accessions)
-        successfully_downloaded = 0
-
-        for accession in accessions:
-            try:
-                self.download_method(accession)
-                successfully_downloaded += 1
-            except (subprocess.CalledProcessError, requests.RequestException) as err:
-                logger.info(
-                    "Failed to download current run: %s. Number of attempts: %d. Error details: %s",
-                    accession,
-                    self.attempts,
-                    err,
-                )
-
-        return successfully_downloaded
-
-    def download_and_check_one_accession(self, accession: str) -> bool:
+    def _download_and_check_one_accession(self, accession: str) -> None:
         logger.debug("Preparing to download an accession: %s", accession)
 
         links, md5s = ENAClient(
@@ -136,25 +115,15 @@ class ENADownloadClient:
         for url, md5 in zip(links, md5s):
             srr = url.split('/')[-1]
             file_path = accession_directory / srr
-            try:
-                self._download_function(url=url, file_path=file_path)
-            except (subprocess.CalledProcessError, requests.RequestException) as err:
-                logger.info(
-                    "Failed to download current run: %s. Number of attempts: %d. Error details: %s",
-                    accession,
-                    self.attempts,
-                    err,
-                )
-                return False
+
+            self._download_function(url=url, file_path=file_path)
 
             if not check_md5_checksum(file_path, md5):
-                logger.info("Downloaded run - %s - failed md5 check.", accession)
-                return False
+                raise ValidationError("Downloaded run - %s - failed md5 check.", accession)
 
         logger.info("Current run - %s - has been downloaded and checked successfully", accession)
-        return True
 
-    def download_one_accession(self, accession: str) -> bool:
+    def _download_one_accession(self, accession: str) -> bool:
         logger.debug("Preparing to download an accession: %s", accession)
 
         links = ENAClient(

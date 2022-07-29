@@ -1,24 +1,25 @@
 import logging
 import subprocess
 import typing as tp
-from functools import partial
 from pathlib import Path
 
 import backoff
 
-import fastqheat.typing_helpers as th
+from fastqheat.backend.common import BaseDownloadClient
+from fastqheat.backend.failed_output_writer import FailedAccessionWriter
+from fastqheat.backend.ncbi.check import AccessionChecker
 from fastqheat.config import config
-from fastqheat.ncbi.check import check_accession
+from fastqheat.exceptions import ValidationError
 
 logger = logging.getLogger("fastqheat.ncbi.download")
 
 
 def download(
     *,
-    output_directory: th.PathType,
+    output_directory: Path,
     accessions: list[str],
     attempts: int = config.MAX_ATTEMPTS,
-    attempts_timeout: int,
+    attempts_interval: int,
     core_count: int,
     skip_check: bool,
     **kwargs: tp.Any,
@@ -27,7 +28,7 @@ def download(
     download_client = NCBIDownloadClient(
         output_directory,
         attempts,
-        attempts_timeout,
+        attempts_interval,
         skip_check,
         core_count=core_count,  # todo: get default from config
     )
@@ -47,65 +48,58 @@ def download(
         )
 
 
-class NCBIDownloadClient:
+class NCBIDownloadClient(BaseDownloadClient):
     def __init__(
         self,
-        output_directory: th.PathType,
+        output_directory: Path,
         attempts: int,
         attempts_interval: int,
         skip_check: bool,
         core_count: int,
     ):
-        self.output_directory = output_directory
-        self.skip_check = skip_check
+        self.output_directory = Path(output_directory)
+        self.failed_output_writer = FailedAccessionWriter(self.output_directory)
+        self.attempts = attempts
+
+        super().__init__(output_directory, attempts, attempts_interval, skip_check)
+
         self.core_count = core_count
-        self.download_function = backoff.on_exception(
+        self._download_function = backoff.on_exception(
             backoff.constant,
             subprocess.CalledProcessError,
             max_tries=attempts,
             interval=attempts_interval,
         )(self._download_via_fastrq_dump)
 
-        self.check_func = partial(
-            check_accession,
+        self.accession_checker = AccessionChecker(
+            directory=Path(output_directory),
             attempts=attempts,
             attempts_interval=attempts_interval,
+            core_count=core_count,
             zipped=False,
         )
 
-    def download_accession_list(self, accessions: list[str]) -> int:
-        """Download multiple accessions one by one."""
-        return sum(self.download_one_accession(accession) for accession in accessions)
-
-    def download_one_accession(self, accession: str) -> bool:
+    def download_one_accession(self, accession: str) -> None:
         """
-
         Download the run from NCBI's Sequence Read Archive (SRA)
         Uses fasterq_dump and check completeness of downloaded fastq file
-        Parameters
-        ----------
-        accession: str
-            a string of Study Accession
-        Returns
-        -------
-        bool
-            True if run was correctly downloaded, otherwise - False
         """
+
         accession_directory = Path(self.output_directory, accession)
         accession_directory.mkdir(parents=True, exist_ok=True)
 
         logger.info('Trying to download %s file', accession)
 
-        self.download_function(accession=accession, accession_directory=accession_directory)
+        self._download_function(accession=accession, accession_directory=accession_directory)
 
-        correctness = True
-        if not self.skip_check:
-            correctness = self.check_func(accession=accession, path=accession_directory)
-
-        if correctness:
+        if self.skip_check:
             self._zip(accession_directory, accession)
+            return
 
-        return correctness
+        if not self.accession_checker.check_accession(accession=accession):
+            raise ValidationError("Downloaded run - %s - is not valid.", accession)
+
+        self._zip(accession_directory, accession)
 
     def _zip(self, accession_directory: Path, accession: str) -> None:
         fastq_files = list(accession_directory.glob(f'{accession}*.fastq'))
