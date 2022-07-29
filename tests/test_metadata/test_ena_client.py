@@ -3,7 +3,7 @@ import requests
 from requests.exceptions import RequestException
 
 from fastqheat.config import config
-from fastqheat.ena.metadata import ENAClient
+from fastqheat.backend.ena.metadata import ENAClient
 from tests.fixtures import MockResponse
 
 accession_response = [
