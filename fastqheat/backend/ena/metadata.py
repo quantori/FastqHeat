@@ -1,6 +1,6 @@
 import typing as tp
 
-from fastqheat.ena.ena_api_client import ENAClient
+from fastqheat.backend.ena.ena_api_client import ENAClient
 
 
 def download_metadata(

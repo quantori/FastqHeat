@@ -5,19 +5,22 @@ import os.path
 import re
 import subprocess
 import typing as tp
+from pathlib import Path
 
 import backoff
 import click
 
-import fastqheat.ena as ena_module
-import fastqheat.ncbi as ncbi_module
+import fastqheat.backend.ena as ena_module
+import fastqheat.backend.ncbi as ncbi_module
 from fastqheat import __version__
+from fastqheat.backend.ena.ena_api_client import ENAClient
 from fastqheat.config import config
-from fastqheat.ena.ena_api_client import ENAClient
 from fastqheat.utility import get_cpu_cores_count
 
 logging.basicConfig(
-    format="%(asctime)s:%(levelname)s:%(name)s:%(message)s", level='DEBUG', datefmt="%H:%M:%S"
+    format="%(asctime)s:%(levelname)s:%(name)s:%(lineno)s:%(message)s",
+    level='DEBUG',
+    datefmt="%H:%M:%S",
 )
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
@@ -212,7 +215,7 @@ def cli() -> None:
     help='Skip metadata download step',
 )
 def ena(
-    working_dir: str,
+    working_dir: Path,
     metadata_file: str,
     config: configparser.ConfigParser,
     transport: str,
@@ -257,7 +260,7 @@ def ena(
 @click.command()
 @common_options
 def ncbi(
-    working_dir: str,
+    working_dir: Path,
     config: configparser.ConfigParser,
     accession: list[str],
     attempts: int,
@@ -273,7 +276,7 @@ def ncbi(
             accessions=accession,
             attempts=attempts,
             skip_check=skip_check,
-            attempts_timeout=attempts_interval,
+            attempts_interval=attempts_interval,
             core_count=cpu_count,
         )
     if skip_download and not skip_check:
