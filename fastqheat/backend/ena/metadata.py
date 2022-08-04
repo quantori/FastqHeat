@@ -43,11 +43,11 @@ async def download_metadata(
 class MetadataDownloader:
     """
     Class for downloading and saving metadata from ENA API to a given *.csv file.
-    Usage example:'
+    Usage example:
 
     metadata_downloader = MetadataDownloader(Path(directory), attempts, attempts_interval)
 
-    successful_num = await metadata_downloader.download_metadata(['SRR7969880', 'SRR7969881'])
+    successful_num = await metadata_downloader.download(['SRR7969880', 'SRR7969881'])
 
     logger.info(
         "%d/%d metadata rows were successfully written to %s",
@@ -72,9 +72,9 @@ class MetadataDownloader:
         self.directory: Path = directory
 
         # how many requests we make simultaneously to ENA API
-        self.batch_size: int = batch_size
+        self._batch_size: int = batch_size
         # how much coroutine that writes to a csv sleep between checkin the queue of data
-        self.writing_coroutine_sleep_timeout: int = writing_coroutine_sleep_timeout
+        self._writing_coroutine_sleep_timeout: int = writing_coroutine_sleep_timeout
         self._ena_async_client: ENAAsyncClient = ENAAsyncClient(
             attempts=attempts, attempts_interval=attempts_interval
         )
@@ -97,7 +97,8 @@ class MetadataDownloader:
     async def _get_data_in_batches(self, accessions: list[str], stop: asyncio.Event) -> None:
         """Get metadata from ENA API in batches of simultaneous async requests."""
         for batch_accessions in (
-            accessions[i : i + BATCH_SIZE] for i in range(0, len(accessions), BATCH_SIZE)
+            accessions[i : i + self._batch_size]
+            for i in range(0, len(accessions), self._batch_size)
         ):
             await asyncio.gather(*[self._get_data(accession) for accession in batch_accessions])
 
@@ -123,9 +124,9 @@ class MetadataDownloader:
                 if self._queue.empty():
                     logger.debug(
                         "Queue is empty. Going to sleep %d seconds...",
-                        WRITING_COROUTINE_SLEEP_TIMEOUT,
+                        self._writing_coroutine_sleep_timeout,
                     )
-                    await asyncio.sleep(WRITING_COROUTINE_SLEEP_TIMEOUT)
+                    await asyncio.sleep(self._writing_coroutine_sleep_timeout)
                     continue
 
                 data = await self._queue.get()
