@@ -180,6 +180,7 @@ def combine_accessions(f):
             raise click.UsageError('No accessions specified')
         accession = (accession or []) + (accession_file or [])
         return f(*args, accession=accession, **kwargs)
+
     return wrapped
 
 
