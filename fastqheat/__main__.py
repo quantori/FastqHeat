@@ -173,7 +173,8 @@ def get_metadata_file() -> str:
     return os.path.join(os.getcwd(), 'metadata.csv')
 
 
-def combine_accessions(f):
+@tp.no_type_check
+def combine_accessions(f: tp.Callable):
     @functools.wraps(f)
     def wrapped(*args, accession: tp.Optional[list], accession_file: tp.Optional[list], **kwargs):
         if not accession and not accession_file:
