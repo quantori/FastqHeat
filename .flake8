@@ -1,0 +1,8 @@
+[flake8]
+count=True
+statistics=True
+show-source=True
+
+ignore=
+    # Undefined name
+    E203 Whitespace before operator

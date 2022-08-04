@@ -1,32 +1,133 @@
 import logging
 import typing as tp
 
+import aiohttp
 import backoff
 import requests
 from requests.exceptions import RequestException
 
 from fastqheat import typing_helpers as th
+from fastqheat.config import config
 
 logger = logging.getLogger("fastqheat.ena.ena_api_client")
 
 
-class ENAClient:
+class BaseENAClient:
     """
     Client to work with European Nucleotide Archive public API.
 
     Swagger: https://www.ebi.ac.uk/ena/portal/api/
     """
 
-    def __init__(self, attempts: int = 1, attempts_interval: int = 1) -> None:
-        self._base_url: str = "https://www.ebi.ac.uk/ena/portal/api/filereport"
+    def __init__(self) -> None:
+        self._base_url: str = "https://www.ebi.ac.uk/ena/portal/api/"
         self._query_params: dict[str, str] = {"result": "read_run", "format": "json"}
-        self.attempts: int = attempts
-        self._get = backoff.on_exception(
+
+
+class ENAAsyncClient(BaseENAClient):
+    def __init__(
+        self,
+        attempts: int = config.MAX_ATTEMPTS,
+        attempts_interval: int = 1,
+        session: tp.Optional[aiohttp.ClientSession] = None,
+    ) -> None:
+        """Async client for working with ENA API."""
+
+        super().__init__()
+
+        self._return_fields_url: str = f"{self._base_url}{'returnFields'}"
+        self._filereport_url: str = f"{self._base_url}{'filereport'}"
+        self._all_ena_fields: list[str] = []
+        self._session: tp.Optional[aiohttp.ClientSession] = session
+
+        self._get_json = backoff.on_exception(
             backoff.constant,
             exception=RequestException,
             max_tries=attempts,
             interval=attempts_interval,
-        )(self._base_get)
+        )(self._base_get_json)
+
+    @property
+    def session(self) -> aiohttp.ClientSession:
+        if not self._session:
+            raise RuntimeError("aiohttp.ClientSession is not set.")
+        return self._session
+
+    @session.setter
+    def session(self, session: aiohttp.ClientSession) -> None:
+        self._session = session
+
+    async def get_ena_fields(self) -> list[str]:
+        if not self._all_ena_fields:
+            self._all_ena_fields = await self._get_all_ena_fields()
+        return self._all_ena_fields
+
+    async def _get_all_ena_fields(self) -> list[str]:
+        params = {"dataPortal": "ena", **self._query_params}
+        response = await self._get_json(params=params, url=self._return_fields_url)
+        '''
+        Response looks like this:
+
+        [
+          {
+            "columnId": "study_accession",
+            "description": "study accession number"
+          },
+          {
+            "columnId": "secondary_study_accession",
+            "description": "secondary study accession number"
+          },
+        ...
+        ]
+        '''
+
+        return [field["columnId"] for field in response]
+
+    async def get_metadata(self, accession: str, fields: str) -> list[th.JsonDict]:
+        """
+        Get data for an accession with all available fields in json format.
+
+        Example of returned data:
+        [{'accession': 'SAMN10181503',
+          'altitude': '',
+          'assembly_quality': '',
+          'assembly_software': '',
+          'base_count': '22674621',
+          'binning_software': '',
+          'bio_material': 'soil',
+          'broker_name': '',
+          ...
+          }
+        ]
+        """
+
+        params = {**self._query_params, "fields": fields, "accession": accession}
+        return await self._get_json(params=params, url=self._filereport_url)
+
+    async def _base_get_json(self, params: dict[str, str], url: str = '') -> list[th.JsonDict]:
+        """Base get json method."""
+        response = await self._session.get(url or self._base_url, params=params)  # type: ignore
+        response.raise_for_status()
+        return await response.json()
+
+
+class ENAClient(BaseENAClient):
+    """
+    Client to work with European Nucleotide Archive public API.
+
+    Swagger: https://www.ebi.ac.uk/ena/portal/api/
+    """
+
+    def __init__(self, attempts: int = config.MAX_ATTEMPTS, attempts_interval: int = 1) -> None:
+        super().__init__()
+        self._filereport_url: str = f"{self._base_url}/{'filerport'}"
+
+        self._get_json = backoff.on_exception(
+            backoff.constant,
+            exception=RequestException,
+            max_tries=attempts,
+            interval=attempts_interval,
+        )(self._base_get_json)
 
     def get_srr_ids_from_srp(self, term: str) -> list[str]:
         """Returns list of SRR(ERR) IDs based on the given SRP(ERP) ID."""
@@ -35,7 +136,7 @@ class ENAClient:
 
         params = {**self._query_params, "accession": term}
 
-        response_data = self._get(params=params)
+        response_data = self._get_json(params=params)
         for data in response_data:
             srr_ids.append(data['run_accession'])
         return srr_ids
@@ -44,7 +145,7 @@ class ENAClient:
         """Returns hashes based on given term."""
 
         params = {**self._query_params, "fields": "fastq_md5", "accession": term}
-        response_data = self._get(params=params)
+        response_data = self._get_json(params=params)
         return response_data[0]['fastq_md5'].split(';')
 
     def get_urls_and_md5s(
@@ -62,7 +163,7 @@ class ENAClient:
         fields = "fastq_ftp,fastq_md5" if ftp else "fastq_aspera,fastq_md5"
         params = {**self._query_params, "fields": fields, "accession": term}
 
-        response_data = self._get(params=params)
+        response_data = self._get_json(params=params)
         url_type = f"fastq_{'ftp' if ftp else 'aspera'}"
 
         md5s = response_data[0]['fastq_md5'].split(';')
@@ -89,7 +190,7 @@ class ENAClient:
 
         params = {**self._query_params, "fields": fields, "accession": term}
 
-        response_data = self._get(params=params)
+        response_data = self._get_json(params=params)
         url_type = f"fastq_{'ftp' if ftp else 'aspera'}"
 
         if ftp:
@@ -105,7 +206,7 @@ class ENAClient:
         """Return total count of lines that should be in a file in order to check it is okay."""
 
         params = {**self._query_params, "fields": "read_count", "accession": term}
-        response_data = self._get(params=params)
+        response_data = self._get_json(params=params)
         total_spots = int(response_data[0]['read_count'])
 
         return total_spots
@@ -113,18 +214,20 @@ class ENAClient:
     def get_run_check(self, term: str) -> tuple[list[str], int]:
         """Returns md5 hashes and total count of a file in order to check if it is okay."""
         params = {**self._query_params, "fields": "fastq_md5,read_count", "accession": term}
-        response_data = self._get(params=params)
+        response_data = self._get_json(params=params)
         md5s = response_data[0]['fastq_md5'].split(';')
         total_spots = int(response_data[0]['read_count'])
 
         return md5s, total_spots
 
-    def _base_get(self, params: tp.Dict[str, str]) -> list[th.JsonDict]:
+    def _base_get_json(
+        self, params: dict[str, str], url: tp.Optional[str] = ""
+    ) -> list[th.JsonDict]:
         """General get method."""
         logger.debug(
             "Querying ENA API with parameters: %s",
             ", ".join([f"{key}={value}" for key, value in params.items()]),
         )
-        response = requests.get(self._base_url, params=params)
+        response = requests.get(url or self._filereport_url, params=params)
         response.raise_for_status()
         return response.json()

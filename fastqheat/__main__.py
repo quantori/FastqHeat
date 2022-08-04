@@ -1,3 +1,4 @@
+import asyncio
 import configparser
 import logging
 import os
@@ -110,7 +111,7 @@ def common_options(f: tp.Callable) -> tp.Callable:
     )(f)
     f = click.option(
         '--attempts',
-        default=0,
+        default=config.MAX_ATTEMPTS,
         show_default=True,
         help='Retry attempts in case of network error.',
         type=click.IntRange(min=0),
@@ -248,12 +249,14 @@ def ena(
             cpu_count=cpu_count,
         )
     if not skip_download_metadata:
-        ena_module.download_metadata(
-            directory=metadata_file,
-            accession=accession,
-            attempts=attempts,
-            attempts_interval=attempts_interval,
-            cpu_count=cpu_count,
+        asyncio.run(
+            ena_module.download_metadata(
+                directory=metadata_file,
+                accession=accession,
+                attempts=attempts,
+                attempts_interval=attempts_interval,
+                cpu_count=cpu_count,
+            )
         )
 
 

@@ -2,7 +2,7 @@ import pytest
 import requests
 from requests.exceptions import RequestException
 
-from fastqheat.backend.ena.metadata import ENAClient
+from fastqheat.backend.ena.ena_api_client import ENAClient
 from fastqheat.config import config
 from tests.fixtures import MockResponse
 
@@ -210,6 +210,6 @@ def test_backoff_on_get(mocker):
     )  # first time raises an error, second time executes successfully
 
     ena_client = ENAClient(attempts=2)
-    ena_client._get(params={"whatever": ""})
+    ena_client._get_json(params={"whatever": ""})
 
     assert mock.call_count == config.MAX_ATTEMPTS
