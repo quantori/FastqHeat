@@ -1,4 +1,5 @@
 import configparser
+import functools
 import logging
 import os
 import os.path
@@ -48,21 +49,35 @@ def get_program_version(program_name: str) -> tp.Optional[str]:
         return output
 
 
-def _make_accession_list(term: str) -> list[str]:
+def _make_accession_list(terms: tp.Iterable[str]) -> list[str]:
     """Get an accession list based on pattern of the given term."""
-    if SRR_PATTERN.search(term):
-        accession_list = [term]
-    elif SRP_PATTERN.search(term):
-        accession_list = ENAClient().get_srr_ids_from_srp(term)
-    else:
-        raise ValueError(f"Unknown pattern: {term}")
-
+    accession_list = list()
+    for term in terms:
+        if not term:
+            continue
+        if SRR_PATTERN.search(term):
+            accession_list.append(term)
+        elif SRP_PATTERN.search(term):
+            accession_list += ENAClient().get_srr_ids_from_srp(term)
+        else:
+            raise click.UsageError(f"Unknown accession pattern: {term}")
     return accession_list
 
 
 @tp.no_type_check
-def validate_accession(ctx, param, value) -> list[str]:
-    return re.split('[ ,]+', value)
+def validate_accession(ctx, param, value: tp.Optional[str]) -> tp.Optional[list[str]]:
+    if value:
+        lst = re.split('[ ,]+', value)
+        return _make_accession_list(lst)
+
+
+@tp.no_type_check
+def validate_accession_file(ctx, param, value) -> tp.Optional[list[str]]:
+    if value:
+        with open(value, 'r') as f:
+            s = f.read()
+            lines = s.splitlines(keepends=False)
+        return _make_accession_list(lines)
 
 
 @tp.no_type_check
@@ -104,6 +119,13 @@ def common_options(f: tp.Callable) -> tp.Callable:
         show_default=True,
         callback=validate_accession,
         help='List of accessions separated by comma. E.g "111,222,333"',
+    )(f)
+    f = click.option(
+        '--accession-file',
+        type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
+        show_default=True,
+        callback=validate_accession_file,
+        help='File with accessions separated by a newline.',
     )(f)
     f = click.option(
         '--attempts',
@@ -149,6 +171,16 @@ def get_config_path() -> str:
 
 def get_metadata_file() -> str:
     return os.path.join(os.getcwd(), 'metadata.csv')
+
+
+def combine_accessions(f):
+    @functools.wraps(f)
+    def wrapped(*args, accession: tp.Optional[list], accession_file: tp.Optional[list], **kwargs):
+        if not accession and not accession_file:
+            raise click.UsageError('No accessions specified')
+        accession = (accession or []) + (accession_file or [])
+        return f(*args, accession=accession, **kwargs)
+    return wrapped
 
 
 @click.group()
@@ -211,6 +243,7 @@ def cli() -> None:
     show_default=True,
     help='Skip metadata download step',
 )
+@combine_accessions
 def ena(
     working_dir: str,
     metadata_file: str,
@@ -256,6 +289,7 @@ def ena(
 
 @click.command()
 @common_options
+@combine_accessions
 def ncbi(
     working_dir: str,
     config: configparser.ConfigParser,
