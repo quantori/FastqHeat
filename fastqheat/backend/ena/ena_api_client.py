@@ -4,7 +4,7 @@ import typing as tp
 import aiohttp
 import backoff
 import requests
-from requests.exceptions import RequestException
+from requests import RequestException
 
 from fastqheat import typing_helpers as th
 from fastqheat.config import config
@@ -42,7 +42,7 @@ class ENAAsyncClient(BaseENAClient):
 
         self._get_json = backoff.on_exception(
             backoff.constant,
-            exception=RequestException,
+            exception=aiohttp.ClientResponseError,
             max_tries=attempts,
             interval=attempts_interval,
         )(self._base_get_json)
