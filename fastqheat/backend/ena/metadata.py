@@ -81,8 +81,7 @@ class MetadataDownloader:
         self._ena_fields: list[str] = []
         self._queue: asyncio.Queue = asyncio.Queue()
 
-    # @with_aiohttp_session
-    async def download(self, accessions: list[str], session: aiohttp.ClientSession = None) -> int:
+    async def download(self, accessions: list[str]) -> int:
         """Orchestrates the process of downloading and saving the metadata."""
         async with aiohttp.ClientSession() as session:
             self._ena_async_client.session = session
