@@ -66,18 +66,20 @@ def _make_accession_list(terms: tp.Iterable[str]) -> list[str]:
 
 @tp.no_type_check
 def validate_accession(ctx, param, value: tp.Optional[str]) -> tp.Optional[list[str]]:
-    if value:
-        lst = re.split('[ ,]+', value)
-        return _make_accession_list(lst)
+    if not value:
+        return
+    lst = re.split('[ ,]+', value)
+    return _make_accession_list(lst)
 
 
 @tp.no_type_check
 def validate_accession_file(ctx, param, value) -> tp.Optional[list[str]]:
-    if value:
-        with open(value, 'r') as f:
-            s = f.read()
-            lines = s.splitlines(keepends=False)
-        return _make_accession_list(lines)
+    if not value:
+        return
+    with open(value, 'r') as f:
+        s = f.read()
+        lines = s.splitlines(keepends=False)
+    return _make_accession_list(lines)
 
 
 @tp.no_type_check
