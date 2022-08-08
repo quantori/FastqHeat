@@ -14,8 +14,6 @@ logger = logging.getLogger("fastqheat.ena.metadata")
 
 T = tp.TypeVar("T")
 
-BATCH_SIZE = 5
-
 WRITING_COROUTINE_SLEEP_TIMEOUT = 1
 
 
