@@ -68,7 +68,7 @@ def _make_accession_list(terms: tp.Iterable[str]) -> list[str]:
             accession_list.append(term)
         elif SRP_PATTERN.search(term):
             try:
-                accession_list = ENAClient().get_srr_ids_from_srp(term)
+                accession_list += ENAClient().get_srr_ids_from_srp(term)
             except ENAClientError:
                 # We handle this error in ENAClient().get_srr_ids_from_srp(term)
                 # Here we only need to catch it in order to skip the current term and proceed
