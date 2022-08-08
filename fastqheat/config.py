@@ -7,7 +7,7 @@ class _Config:
 
     # How many requests we make simultaneously to ENA API during downloading metadata
     # What is the limit or sweet spot - we have not tested yet
-    METADATA_DOWNLOAD_SIMULTANEOUS_CONNECTS_NUMBER_SIZE: int = 5
+    METADATA_DOWNLOAD_SIMULTANEOUS_CONNECTIONS_NUMBER: int = 5
 
 
 config = _Config()

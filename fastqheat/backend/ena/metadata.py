@@ -65,7 +65,7 @@ class MetadataDownloader:
         directory: Path,
         attempts: int,
         attempts_interval: int,
-        batch_size: int = config.METADATA_DOWNLOAD_SIMULTANEOUS_CONNECTS_NUMBER_SIZE,
+        batch_size: int = config.METADATA_DOWNLOAD_SIMULTANEOUS_CONNECTIONS_NUMBER,
         writing_coroutine_sleep_timeout: int = WRITING_COROUTINE_SLEEP_TIMEOUT,
     ):
         self.directory: Path = directory
