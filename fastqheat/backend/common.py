@@ -3,11 +3,9 @@ import subprocess
 from abc import abstractmethod
 from pathlib import Path
 
-import requests
-
 from fastqheat.backend.ena.ena_api_client import ENAClient
 from fastqheat.backend.failed_output_writer import FailedAccessionWriter
-from fastqheat.exceptions import ValidationError
+from fastqheat.exceptions import AccessionCheckerException, ENAClientError, ValidationError
 
 logger = logging.getLogger("fastqheat.backend.common")
 
@@ -29,8 +27,7 @@ class BaseAccessionChecker:
             try:
                 self.check_accession(accession)
                 successfully_checked += 1
-            except (ValidationError, FileNotFoundError, requests.RequestException) as err:
-                logger.error(err)
+            except (ValidationError, FileNotFoundError, AccessionCheckerException):
                 self.failed_accession_writer.add_accession(accession)
 
         return successfully_checked
@@ -60,9 +57,14 @@ class BaseDownloadClient:
             try:
                 self.download_one_accession(accession)
                 successfully_downloaded += 1
+            except ENAClientError:
+                logger.info(
+                    "Failed to download current run: %s. Number of attempts: %d",
+                    accession,
+                    self.attempts,
+                )
             except (
                 subprocess.CalledProcessError,
-                requests.RequestException,
                 ValidationError,
             ) as err:
                 logger.info(

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from fastqheat import typing_helpers as th
 from fastqheat.backend.common import BaseAccessionChecker
-from fastqheat.exceptions import ValidationError
+from fastqheat.exceptions import AccessionCheckerException, ENAClientError, ValidationError
 
 logger = logging.getLogger("fastqheap.ncbi.check")
 
@@ -46,7 +46,11 @@ class AccessionChecker(BaseAccessionChecker):
         logger.debug("Checking accession %s", accession)
 
         cnt_loaded = self._get_cnt_of_coding_loaded_lines(accession=accession)
-        needed_lines_cnt = self.ena_client.get_read_count(accession)
+        try:
+            needed_lines_cnt = self.ena_client.get_read_count(accession)
+        except ENAClientError:
+            logger.error("Cannot check %s because of the ENA API error", accession)
+            raise AccessionCheckerException
 
         if cnt_loaded != needed_lines_cnt:
             raise ValidationError(

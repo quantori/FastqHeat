@@ -5,7 +5,7 @@ from pathlib import Path
 
 import fastqheat.typing_helpers as th
 from fastqheat.backend.common import BaseAccessionChecker
-from fastqheat.exceptions import ValidationError
+from fastqheat.exceptions import AccessionCheckerException, ENAClientError, ValidationError
 
 logger = logging.getLogger("fastqheap.ena.check")
 
@@ -77,7 +77,11 @@ class AccessionChecker(BaseAccessionChecker):
         path = Path(self.directory) / accession  # e.g: /some/output/directory/SRR7882015
         logger.debug("Checking %s...", path)
 
-        md5s = self.ena_client.get_md5s(accession)
+        try:
+            md5s = self.ena_client.get_md5s(accession)
+        except ENAClientError:
+            logger.error("Cannot check files for %s because of the ENA API error", accession)
+            raise AccessionCheckerException
 
         fastq_files = sorted(list(path.glob(f'{accession}*.fastq.gz')))
         if not fastq_files:

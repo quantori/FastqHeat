@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sys
 import typing as tp
 from pathlib import Path
 
@@ -9,6 +10,7 @@ import aiohttp
 
 from fastqheat.backend.ena.ena_api_client import ENAAsyncClient
 from fastqheat.config import config
+from fastqheat.exceptions import ENAClientError
 
 logger = logging.getLogger("fastqheat.ena.metadata")
 
@@ -82,7 +84,11 @@ class MetadataDownloader:
         """Orchestrates the process of downloading and saving the metadata."""
         async with aiohttp.ClientSession() as session:
             self._ena_async_client.session = session
-            self._ena_fields = await self._ena_async_client.get_ena_fields()
+            try:
+                self._ena_fields = await self._ena_async_client.get_ena_fields()
+            except ENAClientError:
+                logger.error("Cannot download metadata because of a critical error")
+                sys.exit(1)
 
             stop = asyncio.Event()
             _, successful_num = await asyncio.gather(
@@ -92,9 +98,11 @@ class MetadataDownloader:
 
     async def _get_data_in_batches(self, accessions: list[str], stop: asyncio.Event) -> None:
         """Get metadata from ENA API in batches of simultaneous async requests."""
+        num_of_accessions = len(accessions)
+        batch_size = self._batch_size if self._batch_size > num_of_accessions else num_of_accessions
+
         for batch_accessions in (
-            accessions[i : i + self._batch_size]
-            for i in range(0, len(accessions), self._batch_size)
+            accessions[i : i + self._batch_size] for i in range(0, len(accessions), batch_size)
         ):
             await asyncio.gather(*[self._get_data(accession) for accession in batch_accessions])
 
@@ -105,7 +113,11 @@ class MetadataDownloader:
         """Get metadata from ENA and put it to the queue."""
         logger.debug("Getting metadata for %s", accession)
         fields_str = ",".join([field for field in self._ena_fields])
-        data = await self._ena_async_client.get_metadata(accession, fields_str)
+        try:
+            data = await self._ena_async_client.get_metadata(accession, fields_str)
+        except ENAClientError:
+            logger.error("Cannot download metadata for %s. Skipping it...", accession)
+            return
         await self._queue.put(data[0])
 
     async def _write_data(self, stop: asyncio.Event) -> int:
