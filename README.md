@@ -165,12 +165,12 @@ clicking the right button of your mouse on "Download Aspera Connect <version num
 "Copy link address".
 
 #### run it
-`chmod +x ibm-aspera-connect_<version number>-linux_x86_64.sh`
-`./ibm-aspera-connect_<version number>-linux_x86_64.sh`
+`chmod +x ibm-aspera-connect_<version number>-linux_x86_64.sh
+./ibm-aspera-connect_<version number>-linux_x86_64.sh`
 
 #### add it to the path now and in the future
-`export PATH=$PATH:~/.aspera/connect/bin/`
-`echo 'export PATH=$PATH:~/.aspera/connect/bin/' >> ~/.bash_profile`
+`export PATH=$PATH:~/.aspera/connect/bin/
+echo 'export PATH=$PATH:~/.aspera/connect/bin/' >> ~/.bash_profile`
 
 #### check that everything works:
 `ascp --version`
