@@ -98,11 +98,9 @@ class MetadataDownloader:
 
     async def _get_data_in_batches(self, accessions: list[str], stop: asyncio.Event) -> None:
         """Get metadata from ENA API in batches of simultaneous async requests."""
-        num_of_accessions = len(accessions)
-        batch_size = self._batch_size if self._batch_size > num_of_accessions else num_of_accessions
-
         for batch_accessions in (
-            accessions[i : i + self._batch_size] for i in range(0, len(accessions), batch_size)
+            accessions[i : i + self._batch_size]
+            for i in range(0, len(accessions), self._batch_size)
         ):
             await asyncio.gather(*[self._get_data(accession) for accession in batch_accessions])
 

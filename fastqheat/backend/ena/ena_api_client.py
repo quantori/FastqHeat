@@ -114,7 +114,7 @@ class ENAAsyncClient(BaseENAClient):
         except aiohttp.ClientResponseError as err:
             logger.exception(err)
             logger.error("Cannot get metadata for particular accession: %s", accession)
-            raise
+            raise ENAClientError
 
     async def _base_get_json(self, params: dict[str, str], url: str = '') -> list[th.JsonDict]:
         """Base get json method."""
@@ -249,7 +249,7 @@ class ENAClient(BaseENAClient):
             response_data = self._get_json(params=params)
         except RequestException as err:
             logger.exception(err)
-            logger.error("An error occurred getting read_count from ENA API for %s", term)
+            logger.error("An error occurred getting read count from ENA API for %s", term)
             raise ENAClientError
         total_spots = int(response_data[0]['read_count'])
 
