@@ -27,7 +27,7 @@ class BaseENAClient:
 class ENAAsyncClient(BaseENAClient):
     def __init__(
         self,
-        attempts: int = config.MAX_ATTEMPTS,
+        attempts: int = config.DEFAULT_MAX_ATTEMPTS,
         attempts_interval: int = 1,
         session: tp.Optional[aiohttp.ClientSession] = None,
     ) -> None:
@@ -118,7 +118,9 @@ class ENAClient(BaseENAClient):
     Swagger: https://www.ebi.ac.uk/ena/portal/api/
     """
 
-    def __init__(self, attempts: int = config.MAX_ATTEMPTS, attempts_interval: int = 1) -> None:
+    def __init__(
+        self, attempts: int = config.DEFAULT_MAX_ATTEMPTS, attempts_interval: int = 1
+    ) -> None:
         super().__init__()
         self._filereport_url: str = f"{self._base_url}/{'filerport'}"
 

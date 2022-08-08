@@ -18,7 +18,7 @@ def download(
     *,
     output_directory: Path,
     accessions: list[str],
-    attempts: int = config.MAX_ATTEMPTS,
+    attempts: int = config.DEFAULT_MAX_ATTEMPTS,
     attempts_interval: int,
     core_count: int,
     skip_check: bool,

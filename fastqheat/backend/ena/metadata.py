@@ -14,8 +14,7 @@ logger = logging.getLogger("fastqheat.ena.metadata")
 
 T = tp.TypeVar("T")
 
-BATCH_SIZE = 5  # how many requests we make simultaneously to ENA API. Actually, I don't know
-# what is the limit, but to be on the safe side I have chosen 5
+BATCH_SIZE = 5
 
 WRITING_COROUTINE_SLEEP_TIMEOUT = 1
 
@@ -24,7 +23,7 @@ async def download_metadata(
     *,
     directory: str,
     accession: list[str],
-    attempts: int = config.MAX_ATTEMPTS,
+    attempts: int = config.DEFAULT_MAX_ATTEMPTS,
     attempts_interval: int = 0,
     **kwargs: tp.Any,
 ) -> None:
@@ -66,7 +65,7 @@ class MetadataDownloader:
         directory: Path,
         attempts: int,
         attempts_interval: int,
-        batch_size: int = BATCH_SIZE,
+        batch_size: int = config.METADATA_DOWNLOAD_SIMULTANEOUS_CONNECTS_NUMBER_SIZE,
         writing_coroutine_sleep_timeout: int = WRITING_COROUTINE_SLEEP_TIMEOUT,
     ):
         self.directory: Path = directory

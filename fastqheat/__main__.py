@@ -31,7 +31,7 @@ SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[
 USABLE_CPUS_COUNT = get_cpu_cores_count()
 
 subprocess_run = backoff.on_exception(
-    backoff.constant, subprocess.CalledProcessError, max_tries=lambda: config.MAX_ATTEMPTS
+    backoff.constant, subprocess.CalledProcessError, max_tries=lambda: config.DEFAULT_MAX_ATTEMPTS
 )(subprocess.run)
 
 
@@ -111,7 +111,7 @@ def common_options(f: tp.Callable) -> tp.Callable:
     )(f)
     f = click.option(
         '--attempts',
-        default=config.MAX_ATTEMPTS,
+        default=config.DEFAULT_MAX_ATTEMPTS,
         show_default=True,
         help='Retry attempts in case of network error.',
         type=click.IntRange(min=0),

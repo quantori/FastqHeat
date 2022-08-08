@@ -212,4 +212,4 @@ def test_backoff_on_get(mocker):
     ena_client = ENAClient(attempts=2)
     ena_client._get_json(params={"whatever": ""})
 
-    assert mock.call_count == config.MAX_ATTEMPTS
+    assert mock.call_count == config.DEFAULT_MAX_ATTEMPTS
