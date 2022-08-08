@@ -53,7 +53,7 @@ def _make_accession_list(terms: tp.Iterable[str]) -> list[str]:
     """Get an accession list based on pattern of the given term."""
     accession_list = list()
     for term in terms:
-        if not term:
+        if not term:  # validate_accession_file may return some empty strings. Here is the easiest place to deal with it
             continue
         if SRR_PATTERN.search(term):
             accession_list.append(term)
