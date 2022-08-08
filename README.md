@@ -171,7 +171,7 @@ chmod +x ibm-aspera-connect_<version number>-linux_x86_64.sh
 ./ibm-aspera-connect_<version number>-linux_x86_64.sh
 ```
 
-#### add it to the path now and in the future
+#### add it to the system path
 ```
 export PATH=$PATH:~/.aspera/connect/bin/
 
