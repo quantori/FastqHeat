@@ -8,6 +8,7 @@ from requests import RequestException
 
 from fastqheat import typing_helpers as th
 from fastqheat.config import config
+from fastqheat.exceptions import ENAClientError
 
 logger = logging.getLogger("fastqheat.ena.ena_api_client")
 
@@ -21,6 +22,7 @@ class BaseENAClient:
 
     def __init__(self) -> None:
         self._base_url: str = "https://www.ebi.ac.uk/ena/portal/api/"
+        self._filereport_url: str = f"{self._base_url}{'filereport'}"
         self._query_params: dict[str, str] = {"result": "read_run", "format": "json"}
 
 
@@ -36,7 +38,6 @@ class ENAAsyncClient(BaseENAClient):
         super().__init__()
 
         self._return_fields_url: str = f"{self._base_url}{'returnFields'}"
-        self._filereport_url: str = f"{self._base_url}{'filereport'}"
         self._all_ena_fields: list[str] = []
         self._session: tp.Optional[aiohttp.ClientSession] = session
 
@@ -64,7 +65,13 @@ class ENAAsyncClient(BaseENAClient):
 
     async def _get_all_ena_fields(self) -> list[str]:
         params = {"dataPortal": "ena", **self._query_params}
-        response = await self._get_json(params=params, url=self._return_fields_url)
+        try:
+            response = await self._get_json(params=params, url=self._return_fields_url)
+        except aiohttp.ClientResponseError as err:
+            logger.exception(err)
+            logger.error("Error occurred during getting fields for metadata from ENA API.")
+            raise ENAClientError
+
         '''
         Response looks like this:
 
@@ -102,7 +109,12 @@ class ENAAsyncClient(BaseENAClient):
         """
 
         params = {**self._query_params, "fields": fields, "accession": accession}
-        return await self._get_json(params=params, url=self._filereport_url)
+        try:
+            return await self._get_json(params=params, url=self._filereport_url)
+        except aiohttp.ClientResponseError as err:
+            logger.exception(err)
+            logger.error("Cannot get metadata for particular accession: %s", accession)
+            raise ENAClientError
 
     async def _base_get_json(self, params: dict[str, str], url: str = '') -> list[th.JsonDict]:
         """Base get json method."""
@@ -122,7 +134,6 @@ class ENAClient(BaseENAClient):
         self, attempts: int = config.DEFAULT_MAX_ATTEMPTS, attempts_interval: int = 1
     ) -> None:
         super().__init__()
-        self._filereport_url: str = f"{self._base_url}/{'filerport'}"
 
         self._get_json = backoff.on_exception(
             backoff.constant,
@@ -138,7 +149,15 @@ class ENAClient(BaseENAClient):
 
         params = {**self._query_params, "accession": term}
 
-        response_data = self._get_json(params=params)
+        try:
+            response_data = self._get_json(params=params)
+        except RequestException as err:
+            logger.exception(err)
+            logger.error(
+                "ENA API returned an error downloading a list of SRR for given SRP: %s", term
+            )
+            raise ENAClientError
+
         for data in response_data:
             srr_ids.append(data['run_accession'])
         return srr_ids
@@ -147,7 +166,13 @@ class ENAClient(BaseENAClient):
         """Returns hashes based on given term."""
 
         params = {**self._query_params, "fields": "fastq_md5", "accession": term}
-        response_data = self._get_json(params=params)
+        try:
+            response_data = self._get_json(params=params)
+        except RequestException as err:
+            logger.exception(err)
+            logger.error("An error occurred when getting md5s for the given term: %s", term)
+            raise ENAClientError
+
         return response_data[0]['fastq_md5'].split(';')
 
     def get_urls_and_md5s(
@@ -165,7 +190,13 @@ class ENAClient(BaseENAClient):
         fields = "fastq_ftp,fastq_md5" if ftp else "fastq_aspera,fastq_md5"
         params = {**self._query_params, "fields": fields, "accession": term}
 
-        response_data = self._get_json(params=params)
+        try:
+            response_data = self._get_json(params=params)
+        except RequestException as err:
+            logger.exception(err)
+            logger.error("An error occurred getting urls and md5s from ENA API for %s", term)
+            raise ENAClientError
+
         url_type = f"fastq_{'ftp' if ftp else 'aspera'}"
 
         md5s = response_data[0]['fastq_md5'].split(';')
@@ -192,7 +223,13 @@ class ENAClient(BaseENAClient):
 
         params = {**self._query_params, "fields": fields, "accession": term}
 
-        response_data = self._get_json(params=params)
+        try:
+            response_data = self._get_json(params=params)
+        except RequestException as err:
+            logger.exception(err)
+            logger.error("An error occurred getting urls from ENA API for %s", term)
+            raise ENAClientError
+
         url_type = f"fastq_{'ftp' if ftp else 'aspera'}"
 
         if ftp:
@@ -208,19 +245,15 @@ class ENAClient(BaseENAClient):
         """Return total count of lines that should be in a file in order to check it is okay."""
 
         params = {**self._query_params, "fields": "read_count", "accession": term}
-        response_data = self._get_json(params=params)
+        try:
+            response_data = self._get_json(params=params)
+        except RequestException as err:
+            logger.exception(err)
+            logger.error("An error occurred getting read count from ENA API for %s", term)
+            raise ENAClientError
         total_spots = int(response_data[0]['read_count'])
 
         return total_spots
-
-    def get_run_check(self, term: str) -> tuple[list[str], int]:
-        """Returns md5 hashes and total count of a file in order to check if it is okay."""
-        params = {**self._query_params, "fields": "fastq_md5,read_count", "accession": term}
-        response_data = self._get_json(params=params)
-        md5s = response_data[0]['fastq_md5'].split(';')
-        total_spots = int(response_data[0]['read_count'])
-
-        return md5s, total_spots
 
     def _base_get_json(
         self, params: dict[str, str], url: tp.Optional[str] = ""

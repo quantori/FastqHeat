@@ -176,32 +176,6 @@ def test_get_read_count(mocker):
     assert get_args["params"]["fields"] == "read_count"
 
 
-def test_get_run_check(mocker):
-    read_count = '344516'
-    ena_client = ENAClient()
-
-    mock = mocker.patch.object(
-        requests,
-        "get",
-        return_value=MockResponse(
-            json=[
-                {
-                    'run_accession': 'SRR7969986',
-                    'fastq_md5': '73242af9842bb15738713d57d4c45b28;152fffe3389fff996f983160eb213d86',  # noqa: E501 line too long
-                    'read_count': read_count,
-                }
-            ]
-        ),
-    )
-
-    md5s, count = ena_client.get_run_check(term="SRR7969986")
-    assert md5s == ['73242af9842bb15738713d57d4c45b28', '152fffe3389fff996f983160eb213d86']
-    assert count == int(read_count)
-
-    get_args = mock.call_args_list[0][1]
-    assert get_args["params"]["fields"] == "fastq_md5,read_count"
-
-
 def test_backoff_on_get(mocker):
     """Tests if ENAClient._get() retries on RequestError."""
 

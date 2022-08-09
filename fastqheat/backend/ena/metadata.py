@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sys
 import typing as tp
 from pathlib import Path
 
@@ -9,6 +10,7 @@ import aiohttp
 
 from fastqheat.backend.ena.ena_api_client import ENAAsyncClient
 from fastqheat.config import config
+from fastqheat.exceptions import ENAClientError
 
 logger = logging.getLogger("fastqheat.ena.metadata")
 
@@ -82,7 +84,11 @@ class MetadataDownloader:
         """Orchestrates the process of downloading and saving the metadata."""
         async with aiohttp.ClientSession() as session:
             self._ena_async_client.session = session
-            self._ena_fields = await self._ena_async_client.get_ena_fields()
+            try:
+                self._ena_fields = await self._ena_async_client.get_ena_fields()
+            except ENAClientError:
+                logger.error("Cannot download metadata because of a critical error")
+                sys.exit(1)
 
             stop = asyncio.Event()
             _, successful_num = await asyncio.gather(
@@ -105,7 +111,11 @@ class MetadataDownloader:
         """Get metadata from ENA and put it to the queue."""
         logger.debug("Getting metadata for %s", accession)
         fields_str = ",".join([field for field in self._ena_fields])
-        data = await self._ena_async_client.get_metadata(accession, fields_str)
+        try:
+            data = await self._ena_async_client.get_metadata(accession, fields_str)
+        except ENAClientError:
+            logger.error("Cannot download metadata for %s. Skipping it...", accession)
+            return
         await self._queue.put(data[0])
 
     async def _write_data(self, stop: asyncio.Event) -> int:

@@ -17,6 +17,7 @@ import fastqheat.backend.ncbi as ncbi_module
 from fastqheat import __version__
 from fastqheat.backend.ena.ena_api_client import ENAClient
 from fastqheat.config import config
+from fastqheat.exceptions import ENAClientError
 from fastqheat.utility import get_cpu_cores_count
 
 logging.basicConfig(
@@ -25,7 +26,9 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("asyncio").setLevel(logging.WARNING)
 
+logger = logging.getLogger("fastqheat.main")
 
 SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
 SRP_PATTERN = re.compile(r'^(((SR|ER|DR)[PAXS])|(SAM(N|EA|D))|PRJ(NA|EB|DB)|(GS[EM]))\d+$')
@@ -64,24 +67,34 @@ def _make_accession_list(terms: tp.Iterable[str]) -> list[str]:
         if SRR_PATTERN.search(term):
             accession_list.append(term)
         elif SRP_PATTERN.search(term):
-            accession_list += ENAClient().get_srr_ids_from_srp(term)
+            try:
+                accession_list += ENAClient().get_srr_ids_from_srp(term)
+            except ENAClientError:
+                # We handle this error in ENAClient().get_srr_ids_from_srp(term)
+                # Here we only need to catch it in order to skip the current term and proceed
+                # with the next one instead of crushing
+                continue
         else:
             raise click.UsageError(f"Unknown accession pattern: {term}")
     return accession_list
 
 
-@tp.no_type_check
-def validate_accession(ctx, param, value: tp.Optional[str]) -> tp.Optional[list[str]]:
+def validate_accession(
+    ctx: click.core.Context, param: click.core.Option, value: tp.Optional[str]
+) -> tp.Optional[list[str]]:
     if not value:
-        return
+        return None
     lst = re.split('[ ,]+', value)
     return _make_accession_list(lst)
 
 
-@tp.no_type_check
-def validate_accession_file(ctx, param, value) -> tp.Optional[list[str]]:
+def validate_accession_file(
+    ctx: click.core.Context,
+    param: click.core.Option,
+    value: tp.Optional[str],
+) -> tp.Optional[list[str]]:
     if not value:
-        return
+        return None
     with open(value, 'r') as f:
         s = f.read()
         lines = s.splitlines(keepends=False)
