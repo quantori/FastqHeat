@@ -149,10 +149,38 @@ Refer to the following sections for usage examples:
  - [Download data for a single SRP via fasterq-dump](#download-data-for-a-single-srp-via-fasterq-dump)
  - [Download data for a single SRR via fasterq-dump](#download-data-for-a-single-srr-via-fasterq-dump)
 
-### Aspera CLI
+### Aspera Connect
 
-Requires that you have [Aspera CLI](https://www.ibm.com/docs/en/aci/3.9.2?topic=aspera-command-line-interface-user-guide-linux) installed and added to your `PATH`.
+Requires that you have `Aspera Connect` installed and added to your `PATH`.
 Specifically, FastqHeat will invoke the `ascp` executable to transfer files.
+
+An instruction how to install `Aspera Connect`:
+
+#### download
+
+`wget -qO- https://d3gcli72yxqn2z.cloudfront.net/downloads/connect/latest/bin/ibm-aspera-connect_4.2.1.116_linux.tar.gz | tar xvz`
+
+You can find what the latest version is by going to the [official website](https://www.ibm.com/aspera/connect/),
+clicking the right button of your mouse on "Download Aspera Connect <version number> for Linux" and pressing
+"Copy link address".
+
+#### run it
+```
+chmod +x ibm-aspera-connect_<version number>-linux_x86_64.sh
+
+./ibm-aspera-connect_<version number>-linux_x86_64.sh
+```
+
+#### add it to the system path
+```
+export PATH=$PATH:~/.aspera/connect/bin/
+
+echo 'export PATH=$PATH:~/.aspera/connect/bin/' >> ~/.bash_profile
+```
+
+#### check that everything works:
+`ascp --version`
+
 
 Refer to the following sections for usage examples:
 
