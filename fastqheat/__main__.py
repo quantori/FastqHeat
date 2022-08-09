@@ -126,7 +126,7 @@ def common_options(f: tp.Callable) -> tp.Callable:
         default=[],
         show_default=True,
         callback=validate_accession,
-        help='List of accessions separated by comma. E.g "111,222,333"',
+        help='List of accessions separated by comma. E.g "SRP163674,SRR7969880,SRP163674"',
     )(f)
     f = click.option(
         '--accession-file',
