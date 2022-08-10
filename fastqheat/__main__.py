@@ -163,13 +163,6 @@ def common_options(f: tp.Callable) -> tp.Callable:
         show_default=True,
         help='Skip data check step.',
     )(f)
-    f = click.option(
-        '--cpu-count',
-        default=get_cpu_cores_count,
-        show_default=True,
-        help='Number of binaries or data checking threads to be working simultaneously.',
-        type=click.IntRange(min=1),
-    )(f)
     return f
 
 
@@ -262,7 +255,6 @@ def ena(
     accession: list[str],
     attempts: int,
     attempts_interval: int,
-    cpu_count: int,
     skip_download: bool,
     skip_check: bool,
     skip_download_metadata: bool,
@@ -276,7 +268,6 @@ def ena(
             binary_path=config['ENA']['AsperaFASP'],
             attempts=attempts,
             attempts_interval=attempts_interval,
-            cpu_count=cpu_count,
             aspera_ssh_path=config['ENA']['SSHKey'],
         )
     if skip_download and not skip_check:
@@ -285,7 +276,6 @@ def ena(
             accessions=accession,
             attempts=attempts,
             attempts_interval=attempts_interval,
-            cpu_count=cpu_count,
         )
     if not skip_download_metadata:
         asyncio.run(
@@ -294,13 +284,20 @@ def ena(
                 accession=accession,
                 attempts=attempts,
                 attempts_interval=attempts_interval,
-                cpu_count=cpu_count,
             )
         )
 
 
 @click.command()
 @common_options
+@click.option(
+    '--cpu-count',
+    default=get_cpu_cores_count,
+    show_default=True,
+    help='Sets the amount of cpu-threads used by fasterq-dump (binary that downloads files from'
+         ' NCBI) and gzip (binary that zips files)',
+    type=click.IntRange(min=1),
+)
 @combine_accessions
 def ncbi(
     working_dir: Path,
