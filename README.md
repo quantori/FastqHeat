@@ -5,30 +5,31 @@
 
 Copyright © 2021 [Quantori](https://www.quantori.com/). Custom Software Solutions. All rights reserved.
 
-This program (wrapper) was created to help to download data from
-[SRA database](https://www.ncbi.nlm.nih.gov/sra/) or European Nucleotide Archive.
-It uses one of the three different methods to download data depending on user's choice:
-**fasterq-dump** to download runs from NCBI's Sequence Read Archive (SRA), **FTP** or
-**Aspera** to download runs from European Nucleotide Archive (ENA). This program also uses
-the **ENA Portal API** to retrieve metadata.
+This program (wrapper) was created to help to download data from [SRA database](https://www.ncbi.nlm.nih.gov/sra/)
+or [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home). It uses one of the three different methods to
+download data depending on user's choice: **fasterq-dump** to download runs from NCBI's Sequence Read Archive (SRA), **
+FTP** or **Aspera** to download runs from European Nucleotide Archive (ENA). This program also uses the **ENA Portal
+API** to retrieve metadata.
 
 Author: **Quantori**
 
 ## How it works
 
-This program takes `ena` or `ncbi` as data source and an SRA study identifier or run ids from its arguments and/or
+This program takes `ena` or `ncbi` as data source and a study identifier or run ids from its arguments and/or
 textfile. It will then download the relevant files directly, or delegate downloading to `fasterq-dump` or Aspera CLI.
 This program will also take care of obtaining required metadata, verify checksums of the downloaded files, and retry
-failed downloads. Text file containing SRA study identifiers or runs ids should have separate lines whit ids. Ids passed
+failed downloads. Text file containing study identifiers or runs ids should have separate lines whit ids. Ids passed
 to program arguments should be separated by comma `,`. For more information see CLI usage
 
 ## Installation
 
+FastqHeat is being developed and tested under Python 3.9.x.
+
+### Using pip
+
 This will install the project and its external Python dependencies.
 Depending on the method you choose for downloading data, you may have to install
 additional command-line utilities, as explained in the [supported methods section](#supported-methods).
-
-### Using pip
 
 1. [Make sure you have installed a supported version of Python](https://www.python.org/downloads/).
 2. Clone this project from GitHub or download it as an archive.
