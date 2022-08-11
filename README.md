@@ -123,6 +123,49 @@ Options:
   --help                          Show this message and exit.   
 ```
 
+### Working directory structure
+
+For every study or run given, FastqHeat will download data for all runs and place them in
+a specific hierarchical directory structure.
+
+For example, if you wish to download data for `SRP163674` to `/some/output/directory`,
+FastqHeat will arrange downloaded files for runs in the following directory structure:
+
+```
+/some/output/directory/
+├── SRR7969880
+│ └── SRR7969880.fastq.gz
+├── SRR7969881
+│ └── SRR7969881.fastq.gz
+├── SRR7969882
+│ └── SRR7969882.fastq.gz
+├── SRR7969883
+│ └── SRR7969883.fastq.gz
+├── SRR7969884
+│ └── SRR7969884.fastq.gz
+...
+```
+
+Here's an example for `SRX4720625`:
+
+```
+/some/output/directory/
+└── SRR7882015
+  ├── SRR7882015_1.fastq.gz
+  └── SRR7882015_2.fastq.gz
+```
+
+If instead you download data just for `SRR7969880`:
+
+```
+/some/output/directory/
+└── SRR7969880
+    └── SRR7969880.fastq.gz
+```
+
+Note that the directory structure will always be exactly the same, regardless of the method
+you selected.
+
 ## Supported methods
 
 ### Fasterq-dump
