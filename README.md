@@ -27,7 +27,7 @@ FastqHeat is being developed and tested under Python 3.9.x.
 
 ### Using pip
 
-This will install the project and its external Python dependencies.
+This is how to install the project and its external Python dependencies.
 Depending on the method you choose for downloading data, you may have to install
 additional command-line utilities, as explained in the [supported methods section](#supported-methods).
 
