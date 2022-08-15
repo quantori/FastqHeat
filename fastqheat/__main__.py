@@ -1,5 +1,4 @@
 import asyncio
-import configparser
 import functools
 import logging
 import os
@@ -16,7 +15,7 @@ import fastqheat.backend.ena as ena_module
 import fastqheat.backend.ncbi as ncbi_module
 from fastqheat import __version__
 from fastqheat.backend.ena.ena_api_client import ENAClient
-from fastqheat.config import config
+from fastqheat.config import FastQHeatConfigParser, config
 from fastqheat.exceptions import ENAClientError
 from fastqheat.utility import get_cpu_cores_count
 
@@ -37,23 +36,6 @@ USABLE_CPUS_COUNT = get_cpu_cores_count()
 subprocess_run = backoff.on_exception(
     backoff.constant, subprocess.CalledProcessError, max_tries=lambda: config.DEFAULT_MAX_ATTEMPTS
 )(subprocess.run)
-
-
-def get_program_version(program_name: str) -> tp.Optional[str]:
-    try:
-        result = subprocess.run(
-            [program_name, '--version'], text=True, capture_output=True, check=True
-        )
-    except FileNotFoundError:
-        return None
-    except subprocess.CalledProcessError as e:
-        logging.error(e.stderr or e.stdout)
-        raise
-    else:
-        output = result.stdout.strip()
-        if program_name == 'ascp':
-            return output.splitlines()[0]
-        return output
 
 
 def _make_accession_list(terms: tp.Iterable[str]) -> list[str]:
@@ -102,20 +84,8 @@ def validate_accession_file(
 
 
 @tp.no_type_check
-def validate_config(ctx, param, value) -> configparser.ConfigParser:
-    config = configparser.ConfigParser()
-    config.read(value)
-    if 'NCBI' not in config.keys():
-        raise click.BadParameter(f"NCBI section not found in config {value}")
-    if 'FasterQDump' not in config['NCBI'].keys():
-        raise click.BadParameter(f"FasterQDump not found in NCBI section of config {value}")
-    if 'ENA' not in config.keys():
-        raise click.BadParameter(f"ENA section not found in config {value}")
-    if 'SSHKey' not in config['ENA'].keys():
-        raise click.BadParameter(f"SSHKey not found in ENA section of config {value}")
-    if 'AsperaFASP' not in config['ENA'].keys():
-        raise click.BadParameter(f"AsperaFASP not found in ENA section of config {value}")
-    return config
+def validate_config(ctx, param, value) -> FastQHeatConfigParser:
+    return FastQHeatConfigParser(filename=value, click_param=param)
 
 
 def common_options(f: tp.Callable) -> tp.Callable:
@@ -263,7 +233,7 @@ def cli() -> None:
 def ena(
     working_dir: Path,
     metadata_file: str,
-    config: configparser.ConfigParser,
+    config: FastQHeatConfigParser,
     transport: str,
     accession: list[str],
     attempts: int,
@@ -273,15 +243,17 @@ def ena(
     skip_download_metadata: bool,
 ) -> None:
     if not skip_download:
+        if transport == 'binary':
+            config.validate_ena_binary_config()
         ena_module.download(
             accessions=accession,
             output_directory=working_dir,
             transport=transport,
             skip_check=skip_check,
-            binary_path=config['ENA']['AsperaFASP'],
+            binary_path=config.ena_binary_path,
             attempts=attempts,
             attempts_interval=attempts_interval,
-            aspera_ssh_path=config['ENA']['SSHKey'],
+            aspera_ssh_path=config.ena_ssh_key_path,
         )
     if skip_download and not skip_check:
         ena_module.check(
@@ -308,13 +280,13 @@ def ena(
     default=get_cpu_cores_count,
     show_default=True,
     help='Sets the amount of cpu-threads used by fasterq-dump (binary that downloads files from'
-    ' NCBI) and gzip (binary that zips files)',
+    ' NCBI) and pigz (binary that zips files)',
     type=click.IntRange(min=1),
 )
 @combine_accessions
 def ncbi(
     working_dir: Path,
-    config: configparser.ConfigParser,
+    config: FastQHeatConfigParser,
     accession: list[str],
     attempts: int,
     attempts_interval: int,
@@ -323,9 +295,10 @@ def ncbi(
     skip_check: bool,
 ) -> None:
     if not skip_download:
+        config.validate_ncbi_binary_config()
         ncbi_module.download(
             output_directory=working_dir,
-            binary_path=config['NCBI']['FasterQDump'],
+            binary_path=config.ncbi_binary_path,
             accessions=accession,
             attempts=attempts,
             skip_check=skip_check,
