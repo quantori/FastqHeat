@@ -106,7 +106,7 @@ def common_options(f: tp.Callable) -> tp.Callable:
     )(f)
     f = click.option(
         '--accession',
-        default=[],
+        default='',
         show_default=True,
         callback=validate_accession,
         help='List of accessions separated by comma. E.g "SRP163674,SRR7969880,SRP163674"',
