@@ -103,7 +103,7 @@ Usage: python -m fastqheat ncbi [OPTIONS]
 Options:                                                                     
   --cpu-count INTEGER RANGE       Sets the amount of cpu-threads used by
                                   fasterq-dump (binary that downloads files
-                                  from NCBI) and gzip (binary that zips files)
+                                  from NCBI) and pigz (binary that zips files)
                                   [default: (dynamic)]                           
   --skip-check BOOLEAN            Skip data check step.  [default: False]    
   --skip-download BOOLEAN         Skip data download step. Data check (if not

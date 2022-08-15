@@ -280,7 +280,7 @@ def ena(
     default=get_cpu_cores_count,
     show_default=True,
     help='Sets the amount of cpu-threads used by fasterq-dump (binary that downloads files from'
-    ' NCBI) and gzip (binary that zips files)',
+    ' NCBI) and pigz (binary that zips files)',
     type=click.IntRange(min=1),
 )
 @combine_accessions
