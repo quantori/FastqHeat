@@ -9,7 +9,7 @@ import click
 
 class FastQHeatConfigParser(ConfigParser):
     def __init__(self, *, filename: str, click_param: click.Option):
-        super(FastQHeatConfigParser, self).__init__()
+        super().__init__()
         read_ok = self.read(filename)
         self.validate_config()
         self.config_path = Path(read_ok[0]).absolute()
