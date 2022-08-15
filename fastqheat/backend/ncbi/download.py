@@ -67,6 +67,7 @@ class NCBIDownloadClient(BaseDownloadClient):
         self._download_function = backoff.on_exception(
             backoff.constant,
             subprocess.CalledProcessError,
+            jitter=None,  # The jitter is disabled in order to keep attempts interval fixed
             max_tries=attempts,
             interval=attempts_interval,
         )(self._download_via_fastrq_dump)
