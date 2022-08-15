@@ -44,6 +44,7 @@ class ENAAsyncClient(BaseENAClient):
         self._get_json = backoff.on_exception(
             backoff.constant,
             exception=aiohttp.ClientResponseError,
+            jitter=None,  # The jitter is disabled in order to keep attempts interval fixed
             max_tries=attempts,
             interval=attempts_interval,
         )(self._base_get_json)
@@ -138,6 +139,7 @@ class ENAClient(BaseENAClient):
         self._get_json = backoff.on_exception(
             backoff.constant,
             exception=RequestException,
+            jitter=None,  # The jitter is disabled in order to keep attempts interval fixed
             max_tries=attempts,
             interval=attempts_interval,
         )(self._base_get_json)
