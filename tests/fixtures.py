@@ -1,8 +1,8 @@
 class MockResponse:
     """Fake response object."""
 
-    def __init__(self, status=200, body=None, json=None):
-        self.status = status
+    def __init__(self, status_code=200, body=None, json=None):
+        self.status_code = status_code
         self._body = body
         self._json = json
 
