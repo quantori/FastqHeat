@@ -15,7 +15,7 @@ import fastqheat.backend.ena as ena_module
 import fastqheat.backend.ncbi as ncbi_module
 from fastqheat import __version__
 from fastqheat.backend.ena.ena_api_client import ENAClient
-from fastqheat.click_utils import OrderableOption, OrderedOptsCommand
+from fastqheat.click_utils import OrderableOption, OrderedOptsCommand, check_binary_available
 from fastqheat.config import FastQHeatConfigParser, config
 from fastqheat.exceptions import ENAClientError
 from fastqheat.utility import get_cpu_cores_count
@@ -344,6 +344,8 @@ def ncbi(
     skip_download: bool,
     skip_check: bool,
 ) -> None:
+    if not skip_download or not skip_check:
+        check_binary_available('pigz')
     if not skip_download:
         config.validate_ncbi_binary_config()
         ncbi_module.download(
