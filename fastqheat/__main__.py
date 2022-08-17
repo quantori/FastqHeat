@@ -20,14 +20,6 @@ from fastqheat.config import FastQHeatConfigParser, config
 from fastqheat.exceptions import ENAClientError
 from fastqheat.utility import get_cpu_cores_count
 
-logging.basicConfig(
-    format="%(asctime)s:%(levelname)s:%(name)s:%(lineno)s:%(message)s",
-    level='DEBUG',
-    datefmt="%H:%M:%S",
-)
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("asyncio").setLevel(logging.WARNING)
-
 logger = logging.getLogger("fastqheat.main")
 
 SRR_PATTERN = re.compile(r'^(SRR|ERR|DRR)\d+$')
@@ -84,9 +76,38 @@ def validate_accession_file(
     return _make_accession_list(lines)
 
 
-@tp.no_type_check
-def validate_config(ctx, param, value) -> FastQHeatConfigParser:
+def validate_config(ctx: click.Context, param: click.Option, value: str) -> FastQHeatConfigParser:
     return FastQHeatConfigParser(filename=value, click_param=param)
+
+
+def validate_log_level(ctx: click.Context, param: click.Option, value: str) -> str:
+    return value.upper()
+
+
+def add_and_setup_logging(f: tp.Callable) -> tp.Callable:
+    @functools.wraps(f)
+    @click.option(
+        '--log-level',
+        default='INFO',
+        type=click.Choice(['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'], case_sensitive=False),
+        callback=validate_log_level,
+        show_default=True,
+        help='Logging level.',
+        cls=OrderableOption,
+        order=1000,
+    )
+    @tp.no_type_check
+    def wrapped(*args, log_level: str, **kwargs):
+        logging.basicConfig(
+            format="%(asctime)s:%(levelname)s:%(name)s:%(lineno)s:%(message)s",
+            level=log_level,
+            datefmt="%H:%M:%S",
+        )
+        logging.getLogger("urllib3").setLevel(log_level)
+        logging.getLogger("asyncio").setLevel(log_level)
+        return f(*args, **kwargs)
+
+    return wrapped
 
 
 def common_options(f: tp.Callable) -> tp.Callable:
@@ -254,6 +275,7 @@ def cli() -> None:
     cls=OrderableOption,
     order=75,
 )
+@add_and_setup_logging
 @combine_accessions
 def ena(
     working_dir: Path,
@@ -310,6 +332,7 @@ def ena(
     cls=OrderableOption,
     order=75,
 )
+@add_and_setup_logging
 @combine_accessions
 def ncbi(
     working_dir: Path,
