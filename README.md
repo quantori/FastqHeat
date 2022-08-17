@@ -68,59 +68,67 @@ Commands:
 ### ENA
 
 ```
-Usage: python -m fastqheat ena [OPTIONS]                                     
-                                                                             
-Options:                                                                                       
-  --skip-check BOOLEAN            Skip data check step.  [default: False]    
+Usage: fastqheat ena [OPTIONS]
+
+Options:
+  --accession TEXT                List of accessions separated by comma. E.g
+                                  "SRP163674,SRR7969880,SRP163674"  [default:
+                                  ]
+  --accession-file FILE           File with accessions separated by a newline.
+  --metadata-file FILE            Metadata filepath  [default: (dynamic)]
+  --working-dir DIRECTORY         Working directory.  [default: <built-in
+                                  function getcwd>]
+  --attempts INTEGER RANGE        Retry attempts in case of network error.
+                                  [default: 2]
+  --attempts_interval INTEGER RANGE
+                                  Retry attempts interval in seconds in case
+                                  of network error.  [default: 0]
+  --transport [binary|ftp]        Transport (method) to be user to download
+                                  data.  [default: binary]
   --skip-download BOOLEAN         Skip data download step. Data check (if not
-                                  skipped) will expect data to be in the     
-                                  working directory  [default: False]        
-  --attempts_interval INTEGER RANGE                                          
-                                  Retry attempts interval in seconds in case 
-                                  of network error.  [default: 0; x>=0]      
-  --attempts INTEGER RANGE        Retry attempts in case of network error.   
-                                  [default: 0; x>=0]                         
-  --accession TEXT                List of accessions separated by comma. E.g 
-                                  "SRP163674,SRR7969880,SRP163674"                              
-  --config FILE                   Configuration file path.  [default:        
-                                  (dynamic)]                                 
-  --working-dir DIRECTORY         Working directory.  [default: <built-in    
-                                  function getcwd>]                          
-  --transport [binary|ftp]        Transport (method) to be user to download  
-                                  data.  [default: binary]                   
-  --metadata-file FILE            Metadata filepath  [default: (dynamic)]    
-  --skip-download-metadata BOOLEAN                                           
-                                  Skip metadata download step  [default:     
-                                  False]                                     
-  --help                          Show this message and exit.      push
+                                  skipped) will expect data to be in the
+                                  working directory  [default: False]
+  --skip-check BOOLEAN            Skip data check step.  [default: False]
+  --skip-download-metadata BOOLEAN
+                                  Skip metadata download step  [default:
+                                  False]
+  --config FILE                   Configuration file path.  [default:
+                                  (dynamic)]
+  --log-level [CRITICAL|ERROR|WARNING|INFO|DEBUG]
+                                  Logging level.  [default: INFO]
+  --help                          Show this message and exit.
 ```
 
 ### NCBI
 
 ```
-Usage: python -m fastqheat ncbi [OPTIONS]                                    
-                                                                             
-Options:                                                                     
+Usage: fastqheat ncbi [OPTIONS]
+
+Options:
+  --accession TEXT                List of accessions separated by comma. E.g
+                                  "SRP163674,SRR7969880,SRP163674"  [default:
+                                  ]
+  --accession-file FILE           File with accessions separated by a newline.
+  --working-dir DIRECTORY         Working directory.  [default: <built-in
+                                  function getcwd>]
+  --attempts INTEGER RANGE        Retry attempts in case of network error.
+                                  [default: 2]
+  --attempts_interval INTEGER RANGE
+                                  Retry attempts interval in seconds in case
+                                  of network error.  [default: 0]
+  --skip-download BOOLEAN         Skip data download step. Data check (if not
+                                  skipped) will expect data to be in the
+                                  working directory  [default: False]
+  --skip-check BOOLEAN            Skip data check step.  [default: False]
   --cpu-count INTEGER RANGE       Sets the amount of cpu-threads used by
                                   fasterq-dump (binary that downloads files
                                   from NCBI) and pigz (binary that zips files)
-                                  [default: (dynamic)]                           
-  --skip-check BOOLEAN            Skip data check step.  [default: False]    
-  --skip-download BOOLEAN         Skip data download step. Data check (if not
-                                  skipped) will expect data to be in the     
-                                  working directory  [default: False]        
-  --attempts_interval INTEGER RANGE                                          
-                                  Retry attempts interval in seconds in case 
-                                  of network error.  [default: 0; x>=0]      
-  --attempts INTEGER RANGE        Retry attempts in case of network error.   
-                                  [default: 0; x>=0]                         
-  --accession TEXT                List of accessions separated by comma. E.g 
-                                  "111,222,333"                              
-  --config FILE                   Configuration file path.  [default:        
-                                  (dynamic)]                                 
-  --working-dir DIRECTORY         Working directory.  [default: <built-in    
-                                  function getcwd>]                          
-  --help                          Show this message and exit.   
+                                  [default: (dynamic)]
+  --config FILE                   Configuration file path.  [default:
+                                  (dynamic)]
+  --log-level [CRITICAL|ERROR|WARNING|INFO|DEBUG]
+                                  Logging level.  [default: INFO]
+  --help                          Show this message and exit.
 ```
 
 ### Working directory structure
