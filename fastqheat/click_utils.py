@@ -5,8 +5,8 @@ import click
 
 class OrderableOption(click.Option):
     @tp.no_type_check
-    def __init__(self, order: int, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, *args, order: int, **kwargs):
+        super().__init__(*args, **kwargs)
         self.order = order
 
 
