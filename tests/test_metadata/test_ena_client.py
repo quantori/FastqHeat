@@ -18,7 +18,9 @@ def test_get_srr_ids_from_srp(mocker):
     accession = "SRP163674"
 
     ena_client = ENAClient()
-    mock = mocker.patch.object(requests, "get", return_value=MockResponse(json=accession_response))
+    mock = mocker.patch.object(
+        requests, "get", return_value=MockResponse(json=accession_response, status_code=200)
+    )
     srr_ids = ena_client.get_srr_ids_from_srp(accession)
 
     get_args = mock.call_args_list[0][1]
@@ -180,7 +182,7 @@ def test_backoff_on_get(mocker):
     """Tests if ENAClient._get() retries on RequestError."""
 
     mock = mocker.patch.object(
-        requests, "get", side_effect=[RequestException("whatever"), MockResponse(status=200)]
+        requests, "get", side_effect=[RequestException("whatever"), MockResponse(status_code=200)]
     )  # first time raises an error, second time executes successfully
 
     ena_client = ENAClient(attempts=2)

@@ -110,17 +110,36 @@ class ENAAsyncClient(BaseENAClient):
         """
 
         params = {**self._query_params, "fields": fields, "accession": accession}
+        response_data = await self._get_data(
+            term=accession,
+            params=params,
+            error_message="An error occurred while getting metadata",
+            url=self._filereport_url,
+        )
+        return response_data
+
+    async def _get_data(
+        self, term: str, params: dict[str, str], error_message: str, url: str = ""
+    ) -> list[th.JsonDict]:
         try:
-            return await self._get_json(params=params, url=self._filereport_url)
+            response_data = await self._get_json(url=url, params=params)
         except aiohttp.ClientResponseError as err:
             logger.exception(err)
-            logger.error("Cannot get metadata for particular accession: %s", accession)
+            logger.error("%s. Accession: %s", error_message, term)
             raise ENAClientError
+
+        if not response_data:
+            logger.error("ENA API returned no data for the accession: %s. Cannot proceed", term)
+            raise ENAClientError
+
+        return response_data
 
     async def _base_get_json(self, params: dict[str, str], url: str = '') -> list[th.JsonDict]:
         """Base get json method."""
         response = await self._session.get(url or self._base_url, params=params)  # type: ignore
         response.raise_for_status()
+        if response.status == 204:  # ENA API returns 204 instead of 404
+            return []
         return await response.json()
 
 
@@ -150,15 +169,11 @@ class ENAClient(BaseENAClient):
         srr_ids = []
 
         params = {**self._query_params, "accession": term}
-
-        try:
-            response_data = self._get_json(params=params)
-        except RequestException as err:
-            logger.exception(err)
-            logger.error(
-                "ENA API returned an error downloading a list of SRR for given SRP: %s", term
-            )
-            raise ENAClientError
+        response_data = self._get_data(
+            term=term,
+            params=params,
+            error_message="An error occurred getting list of SRR for the given SRP from ENA API",
+        )
 
         for data in response_data:
             srr_ids.append(data['run_accession'])
@@ -168,12 +183,11 @@ class ENAClient(BaseENAClient):
         """Returns hashes based on given term."""
 
         params = {**self._query_params, "fields": "fastq_md5", "accession": term}
-        try:
-            response_data = self._get_json(params=params)
-        except RequestException as err:
-            logger.exception(err)
-            logger.error("An error occurred when getting md5s for the given term: %s", term)
-            raise ENAClientError
+        response_data = self._get_data(
+            term=term,
+            params=params,
+            error_message="An error occurred when getting md5s from ENA API",
+        )
 
         return response_data[0]['fastq_md5'].split(';')
 
@@ -191,13 +205,11 @@ class ENAClient(BaseENAClient):
 
         fields = "fastq_ftp,fastq_md5" if ftp else "fastq_aspera,fastq_md5"
         params = {**self._query_params, "fields": fields, "accession": term}
-
-        try:
-            response_data = self._get_json(params=params)
-        except RequestException as err:
-            logger.exception(err)
-            logger.error("An error occurred getting urls and md5s from ENA API for %s", term)
-            raise ENAClientError
+        response_data = self._get_data(
+            term=term,
+            params=params,
+            error_message="An error occurred getting urls and md5s from ENA API",
+        )
 
         url_type = f"fastq_{'ftp' if ftp else 'aspera'}"
 
@@ -224,13 +236,9 @@ class ENAClient(BaseENAClient):
         fields = "fastq_ftp" if ftp else "fastq_aspera"
 
         params = {**self._query_params, "fields": fields, "accession": term}
-
-        try:
-            response_data = self._get_json(params=params)
-        except RequestException as err:
-            logger.exception(err)
-            logger.error("An error occurred getting urls from ENA API for %s", term)
-            raise ENAClientError
+        response_data = self._get_data(
+            term=term, params=params, error_message="An error occurred getting urls from ENA API"
+        )
 
         url_type = f"fastq_{'ftp' if ftp else 'aspera'}"
 
@@ -247,15 +255,29 @@ class ENAClient(BaseENAClient):
         """Return total count of lines that should be in a file in order to check it is okay."""
 
         params = {**self._query_params, "fields": "read_count", "accession": term}
+        response_data = self._get_data(
+            term=term,
+            params=params,
+            error_message="An error occurred getting read count from ENA API",
+        )
+
+        total_spots = int(response_data[0]['read_count'])
+
+        return total_spots
+
+    def _get_data(self, term: str, params: dict[str, str], error_message: str) -> list[th.JsonDict]:
         try:
             response_data = self._get_json(params=params)
         except RequestException as err:
             logger.exception(err)
-            logger.error("An error occurred getting read count from ENA API for %s", term)
+            logger.error("%s. Accession: %s", error_message, term)
             raise ENAClientError
-        total_spots = int(response_data[0]['read_count'])
 
-        return total_spots
+        if not response_data:
+            logger.error("ENA API returned no data for the accession: %s. Cannot proceed", term)
+            raise ENAClientError
+
+        return response_data
 
     def _base_get_json(
         self, params: dict[str, str], url: tp.Optional[str] = ""
@@ -267,4 +289,6 @@ class ENAClient(BaseENAClient):
         )
         response = requests.get(url or self._filereport_url, params=params)
         response.raise_for_status()
+        if response.status_code == 204:  # ENA API returns 204 instead of 404
+            return []
         return response.json()
