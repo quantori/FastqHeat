@@ -15,17 +15,10 @@ import fastqheat.backend.ena as ena_module
 import fastqheat.backend.ncbi as ncbi_module
 from fastqheat import __version__
 from fastqheat.backend.ena.ena_api_client import ENAClient
+from fastqheat.click_utils import OrderableOption, OrderedOptsCommand
 from fastqheat.config import FastQHeatConfigParser, config
 from fastqheat.exceptions import ENAClientError
 from fastqheat.utility import get_cpu_cores_count
-
-logging.basicConfig(
-    format="%(asctime)s:%(levelname)s:%(name)s:%(lineno)s:%(message)s",
-    level='DEBUG',
-    datefmt="%H:%M:%S",
-)
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 logger = logging.getLogger("fastqheat.main")
 
@@ -83,33 +76,49 @@ def validate_accession_file(
     return _make_accession_list(lines)
 
 
-@tp.no_type_check
-def validate_config(ctx, param, value) -> FastQHeatConfigParser:
+def validate_config(ctx: click.Context, param: click.Option, value: str) -> FastQHeatConfigParser:
     return FastQHeatConfigParser(filename=value, click_param=param)
 
 
+def validate_log_level(ctx: click.Context, param: click.Option, value: str) -> str:
+    return value.upper()
+
+
+def add_and_setup_logging(f: tp.Callable) -> tp.Callable:
+    @functools.wraps(f)
+    @click.option(
+        '--log-level',
+        default='INFO',
+        type=click.Choice(['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'], case_sensitive=False),
+        callback=validate_log_level,
+        show_default=True,
+        help='Logging level.',
+        cls=OrderableOption,
+        order=1000,
+    )
+    @tp.no_type_check
+    def wrapped(*args, log_level: str, **kwargs):
+        logging.basicConfig(
+            format="%(asctime)s:%(levelname)s:%(name)s:%(lineno)s:%(message)s",
+            level=log_level,
+            datefmt="%H:%M:%S",
+        )
+        logging.getLogger("urllib3").setLevel(log_level)
+        logging.getLogger("asyncio").setLevel(log_level)
+        return f(*args, **kwargs)
+
+    return wrapped
+
+
 def common_options(f: tp.Callable) -> tp.Callable:
-    f = click.option(
-        '--working-dir',
-        default=os.getcwd,
-        type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True),
-        show_default=True,
-        help='Working directory.',
-    )(f)
-    f = click.option(
-        '--config',
-        default=get_config_path,
-        type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
-        callback=validate_config,
-        show_default=True,
-        help='Configuration file path.',
-    )(f)
     f = click.option(
         '--accession',
         default='',
         show_default=True,
         callback=validate_accession,
         help='List of accessions separated by comma. E.g "SRP163674,SRR7969880,SRP163674"',
+        cls=OrderableOption,
+        order=10,
     )(f)
     f = click.option(
         '--accession-file',
@@ -117,6 +126,17 @@ def common_options(f: tp.Callable) -> tp.Callable:
         show_default=True,
         callback=validate_accession_file,
         help='File with accessions separated by a newline.',
+        cls=OrderableOption,
+        order=20,
+    )(f)
+    f = click.option(
+        '--working-dir',
+        default=os.getcwd,
+        type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True),
+        show_default=True,
+        help='Working directory.',
+        cls=OrderableOption,
+        order=30,
     )(f)
     f = click.option(
         '--attempts',
@@ -124,6 +144,8 @@ def common_options(f: tp.Callable) -> tp.Callable:
         show_default=True,
         help='Retry attempts in case of network error.',
         type=click.IntRange(min=0),
+        cls=OrderableOption,
+        order=40,
     )(f)
     f = click.option(
         '--attempts_interval',
@@ -131,6 +153,8 @@ def common_options(f: tp.Callable) -> tp.Callable:
         show_default=True,
         help='Retry attempts interval in seconds in case of network error.',
         type=click.IntRange(min=0),
+        cls=OrderableOption,
+        order=50,
     )(f)
     f = click.option(
         '--skip-download',
@@ -139,12 +163,27 @@ def common_options(f: tp.Callable) -> tp.Callable:
         help='Skip data download step. Data check (if not skipped) will '
         'expect data to be in the working directory',
         type=click.BOOL,
+        cls=OrderableOption,
+        order=60,
     )(f)
     f = click.option(
         '--skip-check',
         default=False,
         show_default=True,
         help='Skip data check step.',
+        type=click.BOOL,
+        cls=OrderableOption,
+        order=70,
+    )(f)
+    f = click.option(
+        '--config',
+        default=get_config_path,
+        type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
+        callback=validate_config,
+        show_default=True,
+        help='Configuration file path.',
+        cls=OrderableOption,
+        order=80,
     )(f)
     return f
 
@@ -207,28 +246,36 @@ def cli() -> None:
     pass
 
 
-@click.command()
+@click.command(cls=OrderedOptsCommand)
 @common_options
-@click.option(
-    '--transport',
-    default='binary',
-    show_default=True,
-    help='Transport (method) to be user to download data.',
-    type=click.Choice(['binary', 'ftp'], case_sensitive=False),
-)
 @click.option(
     '--metadata-file',
     default=get_metadata_file,
     show_default=True,
     help='Metadata filepath',
     type=click.Path(exists=False, file_okay=True, dir_okay=False, writable=True),
+    cls=OrderableOption,
+    order=25,
+)
+@click.option(
+    '--transport',
+    default='binary',
+    show_default=True,
+    help='Transport (method) to be user to download data.',
+    type=click.Choice(['binary', 'ftp'], case_sensitive=False),
+    cls=OrderableOption,
+    order=55,
 )
 @click.option(
     '--skip-download-metadata',
     default=False,
     show_default=True,
     help='Skip metadata download step',
+    type=click.BOOL,
+    cls=OrderableOption,
+    order=75,
 )
+@add_and_setup_logging
 @combine_accessions
 def ena(
     working_dir: Path,
@@ -273,7 +320,7 @@ def ena(
         )
 
 
-@click.command()
+@click.command(cls=OrderedOptsCommand)
 @common_options
 @click.option(
     '--cpu-count',
@@ -282,7 +329,10 @@ def ena(
     help='Sets the amount of cpu-threads used by fasterq-dump (binary that downloads files from'
     ' NCBI) and pigz (binary that zips files)',
     type=click.IntRange(min=1),
+    cls=OrderableOption,
+    order=75,
 )
+@add_and_setup_logging
 @combine_accessions
 def ncbi(
     working_dir: Path,
