@@ -54,6 +54,10 @@ This project supports command line usage. You can use `--help` to get informatio
 Usage: python -m fastqheat [OPTIONS] COMMAND [ARGS]...
 
   This help message is also accessible via `python3 -m fastqheat --help`.
+  Run 'python3 -m fastqheat COMMAND --help' for more information on a
+  command.
+
+  For more info see README.MD
 
 Options:
   --version  Show the version and exit.
