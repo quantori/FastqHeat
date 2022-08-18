@@ -1,35 +1,19 @@
-import logging
-import subprocess
 from configparser import ConfigParser
 from importlib.resources import files
 from pathlib import Path
 
 import click
 
+from fastqheat.click_utils import check_binary_available
+
 
 class FastQHeatConfigParser(ConfigParser):
-    def __init__(self, *, filename: str, click_param: click.Option):
+    def __init__(self, *, filename: str, click_param: click.Parameter):
         super().__init__()
         read_ok = self.read(filename)
         self.validate_config()
         self.config_path = Path(read_ok[0]).absolute()
         self.click_param = click_param
-
-    def _check_binary(self, program_name: str) -> None:
-        try:
-            subprocess.run([program_name, '--version'], text=True, capture_output=True, check=True)
-        except FileNotFoundError as exc:
-            raise click.BadParameter(
-                f"""Unable to run "{program_name}": File not found.""",
-                param=self.click_param,
-            ) from exc
-        except subprocess.CalledProcessError as exc:
-            message = exc.stderr or exc.stdout
-            logging.error(message)
-            raise click.BadParameter(
-                f"""Unable to run "{program_name}": {message}""",
-                param=self.click_param,
-            ) from exc
 
     def validate_config(self) -> None:
         if 'NCBI' not in self.keys():
@@ -64,10 +48,18 @@ class FastQHeatConfigParser(ConfigParser):
                 f"""SSHKey file "{self.ena_ssh_key_path}" not found""",
                 param=self.click_param,
             )
-        self._check_binary(self.ena_binary_path)
+        check_binary_available(
+            self.ena_binary_path,
+            exception_cls=click.BadParameter,
+            exception_kwargs={'param': self.click_param},
+        )
 
     def validate_ncbi_binary_config(self) -> None:
-        self._check_binary(self.ncbi_binary_path)
+        check_binary_available(
+            self.ncbi_binary_path,
+            exception_cls=click.BadParameter,
+            exception_kwargs={'param': self.click_param},
+        )
 
     @property
     def ena_ssh_key_path(self) -> Path:
