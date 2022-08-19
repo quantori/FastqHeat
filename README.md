@@ -5,64 +5,361 @@
 
 Copyright © 2021 [Quantori](https://www.quantori.com/). Custom Software Solutions. All rights reserved.
 
-This program (wrapper) was created to help to download metagenomic data from SRA database.
-It uses the software **fastq-dump** converting data from **sra** format to **fastq** format. 
+This program (wrapper) was created to help to download data from [SRA database](https://www.ncbi.nlm.nih.gov/sra/)
+or [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home). It uses one of the three different methods to
+download data depending on user's choice: **fasterq-dump** to download runs from NCBI's Sequence Read Archive (SRA), **
+FTP** or **Aspera** to download runs from European Nucleotide Archive (ENA). This program also uses the **ENA Portal
+API** to retrieve metadata.
 
-Language: **Python3**  
-Author: **Anna Ivanova**  
+Author: **Quantori**
 
-## The problems this wrapper decides:
+## How it works
 
-For downloading data from [SRA database](https://www.ncbi.nlm.nih.gov/sra/) often use the program **fastq-dump**. It is the convenient tool but it has its flaws.  
+This program takes `ena` or `ncbi` as data source and a study identifier or run ids from its arguments and/or
+textfile. It will then download the relevant files directly, or delegate downloading to `fasterq-dump` or Aspera CLI.
+This program will also take care of obtaining required metadata, verify checksums of the downloaded files, and retry
+failed downloads. Text file containing study identifiers or runs ids should have separate lines whit ids. Ids passed
+to program arguments should be separated by comma `,`. For more information see CLI usage
 
- - It's possible to download only one by one a SRA experiments. User must run the command for each experiment and manually input the identifier of each.
- - For batch download it is recommended to use [while cycle](https://bioinformaticsworkbook.org/dataAcquisition/fileTransfer/sra.html). But this method is inconvenient when you need to download only certain list of identifiers or visa versa you do not want to download certain large files you previously downloaded. You can not exclude these files.  
- - In time of downloading of a file the connect to SRA database can be lost. Because of that after downloading you need to manually check the size of the loaded data. This is additional user's operation.  
+## Installation
 
-So this project is a tool for:
+FastqHeat is being developed and tested under Python 3.9.x.
 
- - downloading all experiments by one command;
- - downloading only certain experiments or exclude from list any experiments;
- - checking results of downloading.
+### Using pip
 
-## Installation.
-Read [DEVNOTES.md](https://github.com/quantori/FastqHeat/blob/master/DEVNOTES.md)
+This is how to install the project and its external Python dependencies.
+Depending on the method you choose for downloading data, you may have to install
+additional command-line utilities, as explained in the [supported methods section](#supported-methods).
 
-## How it works.
-The fastqHeat connect with NCBI database through API and has API key. It use NCBI services **esearch** and **efetch**.
+1. [Make sure you have installed a supported version of Python](https://www.python.org/downloads/).
+2. Clone this project from GitHub or download it as an archive.
+3. **Optional, but recommended:** create and activate a
+   fresh [virtual environment](https://docs.python.org/3/library/venv.html#creating-virtual-environments).
+4. Install it directly with `pip`.
 
-**Warning:** The tool fastq-dump (sra toolkit) must be preinstalled.   
+Full example for Linux systems:
 
+```bash:
+$ git clone git@github.com:quantori/FastqHeat.git
+$ python3 -m venv env
+$ . env/bin/activate
+$ pip install FastqHeat/
+```
 
-The tool fastq-dump as a parameter use a run identifier. A run id is within an experiment and has SRR prefix.  
-For this wrapper you need to put SRA Study identifier. It starts from SRP prefix.  
+## CLI usage
 
+This project supports command line usage. You can use `--help` to get information about the CLI.
 
-        Parameters:
-    
-    positional arguments:
-            term              The name of SRA Study identifier, looks like SRP... or ERP... or DRP...
+```
+Usage: python -m fastqheat [OPTIONS] COMMAND [ARGS]...
 
-    optional arguments:
-        -h, --help            show this help message and exit
-        -L, --log             To point logging level (debug, info, warning, error. "info" by default)
-        -N, --only            The only_list. The list of the certain items to download.
-                              To write with '"," and without spaces.
-        -P, --skip            The skip_list. The list of the items to do not download. To write with ',' and without spaces.
-                              Warning: Skip parameter has the biggest priority.
-                              If one run id has been pointed in skip_list and in only_list, this run will be skipped.
-        -O, --out             Output directory
-        -S, --show            show lxml file with all Run data (yes/no)
-    
-    Template of query:
-            fastqheat.py {SRA Study identifier name SRP...} --skip_list {run id SRR...} --show yes 
-            
-            fastqheat.py {SRA Study identifier name SRP...} --only_list {run id SRR...} 
-   
-    Ex 1: download all into the directory
-                        python3 fastqheat.py SRP163674 --out /home/user/tmp
-    Ex 2: download all files except some pointed items.
-                        python3 fastqheat.py SRP163674 -P "SRR7969889,SRR7969890,SRR7969890"
-    Ex 3: download only pointed items and show the details of the loading process.
-                        python3 fastqheat.py SRP163674 -N "SRR7969891,SRR7969892" --show yes
-  
+  This help message is also accessible via `python3 -m fastqheat --help`.
+  Run 'python3 -m fastqheat COMMAND --help' for more information on a
+  command.
+
+  For more info see README.MD
+
+Options:
+  --version  Show the version and exit.
+  --help     Show this message and exit.
+
+Commands:
+  ena
+  ncbi
+
+```
+
+### ENA
+
+```
+Usage: fastqheat ena [OPTIONS]
+
+Options:
+  --accession TEXT                List of accessions separated by comma. E.g
+                                  "SRP163674,SRR7969880,SRP163674"  [default:
+                                  ]
+  --accession-file FILE           File with accessions separated by a newline.
+  --metadata-file FILE            Metadata filepath  [default: (dynamic)]
+  --working-dir DIRECTORY         Working directory.  [default: <built-in
+                                  function getcwd>]
+  --attempts INTEGER RANGE        Retry attempts in case of network error.
+                                  [default: 2]
+  --attempts_interval INTEGER RANGE
+                                  Retry attempts interval in seconds in case
+                                  of network error.  [default: 0]
+  --transport [binary|ftp]        Transport (method) to be user to download
+                                  data.  [default: binary]
+  --skip-download BOOLEAN         Skip data download step. Data check (if not
+                                  skipped) will expect data to be in the
+                                  working directory  [default: False]
+  --skip-check BOOLEAN            Skip data check step.  [default: False]
+  --skip-download-metadata BOOLEAN
+                                  Skip metadata download step  [default:
+                                  False]
+  --config FILE                   Configuration file path.  [default:
+                                  (dynamic)]
+  --log-level [CRITICAL|ERROR|WARNING|INFO|DEBUG]
+                                  Logging level.  [default: INFO]
+  --help                          Show this message and exit.
+```
+
+### NCBI
+
+```
+Usage: fastqheat ncbi [OPTIONS]
+
+Options:
+  --accession TEXT                List of accessions separated by comma. E.g
+                                  "SRP163674,SRR7969880,SRP163674"  [default:
+                                  ]
+  --accession-file FILE           File with accessions separated by a newline.
+  --working-dir DIRECTORY         Working directory.  [default: <built-in
+                                  function getcwd>]
+  --attempts INTEGER RANGE        Retry attempts in case of network error.
+                                  [default: 2]
+  --attempts_interval INTEGER RANGE
+                                  Retry attempts interval in seconds in case
+                                  of network error.  [default: 0]
+  --skip-download BOOLEAN         Skip data download step. Data check (if not
+                                  skipped) will expect data to be in the
+                                  working directory  [default: False]
+  --skip-check BOOLEAN            Skip data check step.  [default: False]
+  --cpu-count INTEGER RANGE       Sets the amount of cpu-threads used by
+                                  fasterq-dump (binary that downloads files
+                                  from NCBI) and pigz (binary that zips files)
+                                  [default: (dynamic)]
+  --config FILE                   Configuration file path.  [default:
+                                  (dynamic)]
+  --log-level [CRITICAL|ERROR|WARNING|INFO|DEBUG]
+                                  Logging level.  [default: INFO]
+  --help                          Show this message and exit.
+```
+
+### Working directory structure
+
+For every study or run given, FastqHeat will download data for all runs and place them in
+a specific hierarchical directory structure.
+
+For example, if you wish to download data for `SRP163674` to `/some/output/directory`,
+FastqHeat will arrange downloaded files for runs in the following directory structure:
+
+```
+/some/output/directory/
+├── SRR7969880
+│ └── SRR7969880.fastq.gz
+├── SRR7969881
+│ └── SRR7969881.fastq.gz
+├── SRR7969882
+│ └── SRR7969882.fastq.gz
+├── SRR7969883
+│ └── SRR7969883.fastq.gz
+├── SRR7969884
+│ └── SRR7969884.fastq.gz
+...
+```
+
+Here's an example for `SRX4720625`:
+
+```
+/some/output/directory/
+└── SRR7882015
+  ├── SRR7882015_1.fastq.gz
+  └── SRR7882015_2.fastq.gz
+```
+
+If instead you download data just for `SRR7969880`:
+
+```
+/some/output/directory/
+└── SRR7969880
+    └── SRR7969880.fastq.gz
+```
+
+Note that the directory structure will always be exactly the same, regardless of the method
+you selected.
+
+## Supported methods
+
+### Fasterq-dump
+
+Requires `fasterq-dump` executable installed and added to `PATH`. Consult the
+[official SRA Toolkit documentation](https://github.com/ncbi/sra-tools/wiki/HowTo:-Binary-Installation)
+for detailed instructions. After downloading files, FastqHeat will compress them with
+[`pigz`](https://github.com/madler/pigz) (can be installed with `apt` on Debian-based systems).
+
+Both `fasterq-dump` and `pigz` support parallel execution and it's enabled by default. The `--cpu-count`
+argument (see [CLI usage](#cli-usage)) controls exactly how many threads these programs will spawn.
+The default number of threads is equal to the number of logical CPUs in the system.
+
+Refer to the following sections for usage examples:
+
+- [Download data for a single SRP via fasterq-dump](#download-data-for-a-single-srp-via-fasterq-dump)
+- [Download data for a single SRR via fasterq-dump](#download-data-for-a-single-srr-via-fasterq-dump)
+
+### Aspera Connect
+
+Requires that you have `Aspera Connect` installed and added to your `PATH`.
+Specifically, FastqHeat will invoke the `ascp` executable to transfer files.
+
+An instruction how to install `Aspera Connect`:
+
+#### download
+
+`wget -qO- https://d3gcli72yxqn2z.cloudfront.net/downloads/connect/latest/bin/ibm-aspera-connect_4.2.1.116_linux.tar.gz | tar xvz`
+
+You can find what the latest version is by going to the [official website](https://www.ibm.com/aspera/connect/),
+clicking the right button of your mouse on "Download Aspera Connect <version number> for Linux" and pressing
+"Copy link address".
+
+#### run it
+
+```
+chmod +x ibm-aspera-connect_<version number>-linux_x86_64.sh
+
+./ibm-aspera-connect_<version number>-linux_x86_64.sh
+```
+
+#### add it to the system path
+
+```
+export PATH=$PATH:~/.aspera/connect/bin/
+
+echo 'export PATH=$PATH:~/.aspera/connect/bin/' >> ~/.bash_profile
+```
+
+#### check that everything works:
+
+`ascp --version`
+
+Refer to the following sections for usage examples:
+
+- [Download data for a single SRP via Aspera CLI](#download-data-for-a-single-srp-via-aspera-cli)
+- [Download data for a single SRR via Aspera CLI](#download-data-for-a-single-srr-via-aspera-cli)
+
+### FTP
+
+FastqHeat will download files directly from ENA.
+
+Refer to the following sections for usage examples:
+
+- [Download data for a single SRP via FTP](#download-data-for-a-single-srp-via-ftp)
+- [Download data for a single SRR via FTP](#download-data-for-a-single-srr-via-ftp)
+
+## Examples
+
+### Download data for a single SRP via fasterq-dump
+
+```bash
+# Download SRP163674 data to the current directory using fasterq-dump
+$ python3 -m fastqheat ncbi --accession=SRP163674
+# Same, but output files to /tmp instead
+$ python3 -m fastqheat ncbi --accession=SRP163674 --working-dir=/tmp
+```
+
+### Download data for a single SRR via fasterq-dump
+
+```bash
+# Download data for SRR7969880 to the current directory. Sets the number of cores
+# to use by fasterq-dump and pigz, overriding the default setting
+$ python3 -m fastqheat ncbi --accession=SRR7969880 --cpu-count=8
+```
+
+### Download data for a single SRP via Aspera CLI
+
+```bash
+# Download data related to SRP163674 to the current directory using Aspera CLI
+$ python3 -m fastqheat ena --accession=SRP163674
+# Same, but output files to /tmp instead
+$ python3 -m fastqheat ena --accession=SRP163674 --working-dir=/tmp
+```
+
+### Download data for a single SRR via Aspera CLI
+
+```bash
+# Download data for SRR7969880 to /tmp
+$ python3 -m fastqheat ena --accession=SRR7969880 --working-dir=/tmp
+```
+
+### Download data for a single SRP via FTP
+
+```bash
+# Download data related to SRP163674 to the current directory using FTP
+$ python3 -m fastqheat ena --transport=ftp --accession=SRP163674
+# Same, but output files to /tmp instead
+$ python3 -m fastqheat ena --transport=ftp --accession=SRP163674 --out /tmp
+```
+
+### Download data for a single SRR via FTP
+
+```bash
+# Download data for SRR7969880 to /tmp
+$ python3 -m fastqheat ena --transport=ftp --accession=SRR7969880 --out /tmp
+```
+
+### Download data for multiple SRR or SRP identifiers
+
+```bash
+$ python3 -m fastqheat ena --accession=SRR7969880,SRP150545 --out /tmp
+```
+
+Or create a `.txt` file containing identifiers of SRA studies or runs.
+
+```bash
+
+# Download data for every entry in input_file.txt using fasterq-dump with 6 threads
+$ python3 -m fastqheat ena --accession-file=/path/to/input_file.txt --cpu-count=6
+```
+
+Each identifier should be placed on a separate line. Example of a valid file:
+
+```bash
+$ cat /path/to/input_file.txt
+SRP163674
+SRX4720625
+SRP150545
+```
+
+## Development
+
+Development happens on the `dev` branch. `master` is the stable branch.
+
+Clone the project, enter the project directory, and switch to the development branch:
+
+```bash
+~$ git clone git@github.com:quantori/FastqHeat.git
+~$ cd FastqHeat/
+~/FastqHeat$ git checkout dev
+```
+
+Install [`poetry`](https://python-poetry.org/), then install the project:
+
+```bash
+~/FastqHeat$ poetry install  # NOTE: includes dev dependencies
+```
+
+> **NOTE**: to run commands within the project's virtual environment you will have
+> to activate Poetry's shell (`poetry shell`) or run them via `poetry run`. It is also possible to, install the project
+> via `pip` in editable mode (`-e`)
+> instead, and then install project's dependencies with `poetry install --no-root`.
+
+Make sure you've installed optional command-line utilities as well.
+If you add new Python dependencies, they should be included in
+[`pyproject.toml`](pyproject.toml) in the relevant sections (don't forget
+to recreate [`poetry.lock`](poetry.lock) after you're done).
+
+To check that everything is in order:
+
+```bash
+~/FastqHeat$ make format  # Formats code
+~/FastqHeat$ make lint  # Runs linters against code
+~/FastqHeat$ make test  # Runs unit tests
+```
+
+## Contributing
+
+We welcome participation from all members of the community. We ask that all interactions
+conform to our [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Questions?
+
+Feel free to open an [issue](https://github.com/quantori/FastqHeat/issues)!

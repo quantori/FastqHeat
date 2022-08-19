@@ -1,0 +1,56 @@
+[tool.setuptools.package-data]
+fastqheat = ["asperaweb_id_dsa.openssh"]
+
+[tool.poetry]
+name = "FastqHeat"
+version = "0.0.1"
+description = "Helper for downloading metagenomic data from SRA database"
+authors = ["Quantori"]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.10"
+requests = "2.28.0"
+urllib3 = "1.26.5"
+backoff = "^2.1.2"
+aiofiles = "^0.8.0"
+aiocsv = "^1.2.2"
+aiohttp = "^3.8.1"
+types-aiofiles = "^0.8.10"
+pytest-asyncio = "^0.19.0"
+click = "^8.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1.2"
+black = "^22.3.0"
+isort = "^5.10.1"
+flake8 = "^4.0.1"
+mypy = "0.961"
+types-requests = "^2.27.31"
+safety = "^1.10.3"
+pytest-mock = "^3.8.2"
+
+[tool.black]
+line-length = 100
+skip-string-normalization = true
+exclude = '''
+(
+  /(
+      \.git
+    | \.venv
+  )/
+)
+'''
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.isort]
+# To match black's line length
+line_length = 100
+include_trailing_comma = true
+multi_line_output = 3
+known_third_party=["pytest", "requests", "urllib3"]
+
+[build-system]
+requires = ["poetry-core>=1.0,<1.1"]
+build-backend = "poetry.core.masonry.api"
